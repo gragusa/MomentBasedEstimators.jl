@@ -1,6 +1,5 @@
 module GMM
 
-using ModelsGenerators
 using PDMats
 using ForwardDiff
 using MathProgBase
