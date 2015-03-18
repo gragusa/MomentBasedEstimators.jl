@@ -82,7 +82,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     ub = Float64[]
     MathProgSolverInterface.loadnonlinearproblem!(m, length(theta), 0, l, u, lb, ub, :Min, NLPE)
 
-    MathProgSolverInterface.setwarmstart!(m,[0.0])
+    MathProgSolverInterface.setwarmstart!(m, theta)
     MathProgSolverInterface.optimize!(m)
 
     (MathProgSolverInterface.getobjval(m),
