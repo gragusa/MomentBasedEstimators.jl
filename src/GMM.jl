@@ -25,7 +25,7 @@ end
 
 MathProgSolverInterface.features_available(d::GMMNLPE) = [:Grad, :Jac, :Hess]
 
-function MathProgSolverInterface.eval_f(d::GMMNLPE, theta) 
+function MathProgSolverInterface.eval_f(d::GMMNLPE, theta)
     gn = d.mf(theta)
     (gn'd.W*gn)[1]
 end
@@ -41,40 +41,71 @@ MathProgSolverInterface.eval_jac_g(d::GMMNLPE, J, x) = nothing
 MathProgSolverInterface.eval_hesslag(d::GMMNLPE, H, x, σ, μ) = nothing
 MathProgSolverInterface.hesslag_structure(d::GMMNLPE) = [],[]
 
+"""
+TODO: Document the rest of the arguments
+
+`mf` should be a function that computes the empirical moments of the
+model. It can have one of two call signatures:
+
+1. `mf(θ)`: computes moments, given only a parameter vector
+2. `mf(θ, data)`: computes moments, given a parameter vector and an
+   arbitrary object that contains the data necessary to compute the
+   moments. Examples of `data` is a matrix, a Dict, or a DataFrame.
+   The data argument is not used internally by these routines, but is
+   simply here for user convenience.
+
+The `mf` function should return an object of type Array{Float64, 2}
+"""
 function gmm(mf::Function, theta::Vector, W::Array{Float64, 2};
-             solver = IpoptSolver(hessian_approximation="limited-memory"))
+             solver = IpoptSolver(hessian_approximation="limited-memory"),
+             data=nothing)
     npar = length(theta)
     theta_l = ones(npar)*-Inf
-    theta_u = ones(npar)*+Inf    
-    gmm(mf, theta, theta_l, theta_u, W,  solver = solver)
-end 
+    theta_u = ones(npar)*+Inf
+    gmm(mf, theta, theta_l, theta_u, W,  solver = solver, data=data)
+end
+
+function max_args(f::Function)
+    if isgeneric(f)
+        return methods(f).max_args
+    else
+        # anonymous function
+        # NOTE: This might be quite fragile, but works on 0.3.6 and 0.4-dev
+        return length(Base.uncompressed_ast(f.code).args[1])
+    end
+end
 
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
              W::Array{Float64, 2};
-             solver = IpoptSolver(hessian_approximation="limited-memory"))
-    
-    mf0        = mf(theta)
+             solver = IpoptSolver(hessian_approximation="limited-memory"),
+             data=nothing)
+
+    # NOTE: all handling of data happens right here, because we will use _mf
+    #       internally from now on.
+    _mf(theta) = max_args(mf) == 1 ? mf(theta): mf(theta, data)
+
+    mf0        = _mf(theta)
     nobs, nmom = size(mf0)
     npar       = length(theta)
-    
+
     nl         = length(theta_l)
     nu         = length(theta_u)
-    
+
     @assert nl == nu
     @assert npar == nl
     @assert nobs > nmom
     @assert nmom >= npar
-    
+
     ## mf is n x m
-    smf(theta) = reshape(sum(mf(theta),1), nmom, 1);
+    smf(theta) = reshape(sum(_mf(theta),1), nmom, 1);
 
     smf!(θ::Vector, gg) = gg[:] = smf(θ)
 
     Dsmf = ForwardDiff.forwarddiff_jacobian(smf!, Float64,
                                            fadtype=:dual, n = npar, m = nmom)
 
-    NLPE = GMMNLPE(smf, Dsmf, W)    
-    
+    NLPE = GMMNLPE(smf, Dsmf, W)
+
     m = MathProgSolverInterface.model(solver)
     l = theta_l
     u = theta_u
@@ -88,7 +119,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     (MathProgSolverInterface.getobjval(m),
      MathProgSolverInterface.getsolution(m),
      MathProgSolverInterface.status(m))
-    
+
 end
 
 end
