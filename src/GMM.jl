@@ -65,6 +65,16 @@ function gmm(mf::Function, theta::Vector, W::Array{Float64, 2};
     gmm(mf, theta, theta_l, theta_u, W,  solver = solver, data=data)
 end
 
+function max_args(f::Function)
+    if isgeneric(f)
+        return methods(f).max_args
+    else
+        # anonymous function
+        # NOTE: This might be quite fragile, but works on 0.3.6 and 0.4-dev
+        return length(Base.uncompressed_ast(f.code).args[1])
+    end
+end
+
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
              W::Array{Float64, 2};
              solver = IpoptSolver(hessian_approximation="limited-memory"),
@@ -72,7 +82,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
 
     # NOTE: all handling of data happens right here, because we will use _mf
     #       internally from now on.
-    _mf(theta) = methods(mf).max_args == 1 ? mf(theta): mf(theta, data)
+    _mf(theta) = max_args(mf) == 1 ? mf(theta): mf(theta, data)
 
     mf0        = _mf(theta)
     nobs, nmom = size(mf0)
