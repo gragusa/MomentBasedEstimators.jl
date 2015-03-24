@@ -303,7 +303,7 @@ function Base.writemime(io::IO, ::MIME"text/plain", me::MomentEstimator)
     show(io, ct)
 end
 
-export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov
+export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov, optimal_W
 
 
 
