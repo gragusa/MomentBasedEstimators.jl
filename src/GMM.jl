@@ -151,7 +151,7 @@ npar(me::MomentEstimator) = me.r.npar
 function StatsBase.vcov(me::MomentEstimator, k::RobustVariance)
     G = jacobian(me)
     S =  PDMat(mfvcov(me, k))
-    (nobs(me)/(nobs(me)-npar(me)))*pinv(Xt_invA_X(S, G))
+    (nobs(me).^2/(nobs(me)-npar(me)))*pinv(Xt_invA_X(S, G))
 end 
 
 StatsBase.vcov(me::MomentEstimator) = vcov(me::MomentEstimator, HC0())
