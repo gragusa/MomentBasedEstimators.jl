@@ -153,11 +153,43 @@ nmom(me::MomentEstimator) = me.r.nmom
 df(me::MomentEstimator) = nmom(me) - npar(me)
 Shat(me::MomentEstimator, k::RobustVariance) = PDMat(mfvcov(me, k)) * nobs(me)
 optimal_W(me::MomentEstimator, k::RobustVariance) = pinv(full(Shat(me, k)))
+z_stats(me::MomentEstimator, k::RobustVariance) = coef(me) ./ stderr(me, k)
+p_values(me::MomentEstimator, k::RobustVariance) = 2*ccdf(Normal(),
+                                                          z_stats(me, k))
+
+function StatsBase.coeftable(me::MomentEstimator,
+                             k::RobustVariance=HC0())
+    cc = coef(me)
+    se = stderr(me, k)
+    zz = z_stats(me, k)
+    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
+              ["Estimate","Std.Error","z value", "Pr(>|z|)"],
+              ["x$i" for i = 1:npar(me)],
+              4)
+end
+
+function Base.writemime(io::IO, ::MIME"text/plain", me::MomentEstimator)
+    # get coef table and j-test
+    ct = coeftable(me)
+    j, p = J_test(me)
+
+    # show info for our model
+    println(io, "$(typeof(me))")
+    println(io, "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n")
+    println(io, "Coefficients:\n")
+
+    # then show coeftable
+    show(io, ct)
+end
 
 function StatsBase.vcov(me::MomentEstimator, k::RobustVariance=HC0())
     G = jacobian(me)
     S = Shat(me, k)
     (nobs(me)/(nobs(me)-npar(me)))*pinv(Xt_invA_X(S, G))
+end
+
+function StatsBase.stderr(me::MomentEstimator, k::RobustVariance=HC0())
+    sqrt(diag(vcov(me, k)))
 end
 
 function J_test(me::MomentEstimator)
@@ -180,11 +212,6 @@ function two_step(mf::Function, theta::Vector, W::Array{Float64, 2};
     # do gmm one more time with optimal W
     gmm(mf, theta1, optimal_W(me1, k); solver=solver, data=data)
 end
-
-## To do: implement show method for MomentEstimator
-## function Base.show(io::, me::MomentEstimator)
-## end
-
 
 export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov
 
