@@ -8,7 +8,7 @@ using StatsBase
 using Reexport
 @reexport using CovarianceMatrices
 import MathProgBase.MathProgSolverInterface
-
+import CovarianceMatrices.RobustVariance
 type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
     mf::Function
     smf::Function
