@@ -227,8 +227,8 @@ end
 
 function optimal_W(mf::Function, theta::Vector, k::RobustVariance)
     h = mf(theta)
-    T = size(h, 1)
-    S = vcov(h, k) * T
+    n = size(h, 1)
+    S = vcov(h, k) * n
     W = pinv(S)
     W
 end
