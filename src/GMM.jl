@@ -151,8 +151,8 @@ nobs(me::MomentEstimator) = me.r.nobs
 npar(me::MomentEstimator) = me.r.npar
 nmom(me::MomentEstimator) = me.r.nmom
 df(me::MomentEstimator) = nmom(me) - npar(me)
-Shat(me::MomentEstimator, k::RobustVariance) = PDMat(mfvcov(me, k)) * nobs(me)
-optimal_W(me::MomentEstimator, k::RobustVariance) = pinv(full(Shat(me, k)))
+Shat(me::GMMEstimator, k::RobustVariance) = PDMat(mfvcov(me, k)) * nobs(me)
+optimal_W(me::GMMEstimator, k::RobustVariance) = pinv(full(Shat(me, k)))
 z_stats(me::MomentEstimator, k::RobustVariance) = coef(me) ./ stderr(me, k)
 p_values(me::MomentEstimator, k::RobustVariance) = 2*ccdf(Normal(),
                                                           z_stats(me, k))
@@ -192,7 +192,7 @@ function StatsBase.stderr(me::MomentEstimator, k::RobustVariance=HC0())
     sqrt(diag(vcov(me, k)))
 end
 
-function J_test(me::MomentEstimator)
+function J_test(me::GMMEstimator)
     # NOTE: because objective is sum of mf instead of typical mean of mf,
     #       there is no need to multiply by $T$ here (already done in obj)
     j = objval(me)
