@@ -6,6 +6,7 @@ using MathProgBase
 using Ipopt
 using StatsBase
 using Reexport
+using Distributions
 @reexport using CovarianceMatrices
 import MathProgBase.MathProgSolverInterface
 import CovarianceMatrices.RobustVariance
