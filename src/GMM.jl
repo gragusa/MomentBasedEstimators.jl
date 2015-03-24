@@ -280,23 +280,31 @@ function StatsBase.coeftable(me::MomentEstimator,
     se = stderr(me, k)
     zz = z_stats(me, k)
     CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
-              ["Estimate","Std.Error","z value", "Pr(>|z|)"],
+              ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
               ["x$i" for i = 1:npar(me)],
               4)
 end
 
-# TODO: this will not work for other moment estimators as it relies on the
-#       J_test method for GMM. Maybe we factor that part out into a
-#       show_other(io, me) method that defaults to `""`, but can be overridden
-#       by subtypes to show additional info pertinent to the estimator
-function Base.writemime(io::IO, ::MIME"text/plain", me::MomentEstimator)
+function show_extra(me::GMMEstimator)
+    j, p = J_test(me)
+    "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+end
+
+# default to nothing
+show_extra(me::MomentEstimator) = ""
+
+
+function Base.writemime{T<:MomentEstimator}(io::IO, ::MIME"text/plain", me::T)
     # get coef table and j-test
     ct = coeftable(me)
-    j, p = J_test(me)
 
     # show info for our model
-    println(io, "$(typeof(me))")
-    println(io, "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n")
+    println(io, "$(T): $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
+
+    # Show extra information for this type
+    println(io, show_extra(me))
+
+    # print coefficient table
     println(io, "Coefficients:\n")
 
     # then show coeftable
