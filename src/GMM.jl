@@ -9,8 +9,6 @@ using Reexport
 @reexport using CovarianceMatrices
 import MathProgBase.MathProgSolverInterface
 
-const RobustVariance = CovarianceMatrices.RobustVariance
-
 # -------------- #
 # Main GMM Types #
 # -------------- #
@@ -246,14 +244,14 @@ df(me::MomentEstimator) = nmom(me) - npar(me)
 z_stats(me::MomentEstimator, k::RobustVariance) = coef(me) ./ stderr(me, k)
 p_values(me::MomentEstimator, k::RobustVariance) = 2*ccdf(Normal(),
                                                           z_stats(me, k))
-Shat(me::GMMEstimator, k::RobustVariance) = PDMat(mfvcov(me, k)) * nobs(me)
+shat(me::GMMEstimator, k::RobustVariance) = PDMat(mfvcov(me, k)) * nobs(me)
 optimal_W(me::GMMEstimator, k::RobustVariance) = pinv(full(Shat(me, k)))
 
 
 function StatsBase.vcov(me::MomentEstimator, k::RobustVariance=HC0())
     G = jacobian(me)
-    S = Shat(me, k)
-    (nobs(me)/(nobs(me)-npar(me)))*pinv(Xt_invA_X(S, G))
+    S = shat(me, k)
+    (nobs(me).^2/(nobs(me)-npar(me)))*pinv(Xt_invA_X(S, G))
 end
 
 function StatsBase.stderr(me::MomentEstimator, k::RobustVariance=HC0())
