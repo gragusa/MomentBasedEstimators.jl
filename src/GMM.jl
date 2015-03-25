@@ -213,8 +213,6 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     nobs, nmom = size(mf0)
     npar       = length(theta)
 
-    @show nmom
-
     nl         = length(theta_l)
     nu         = length(theta_u)
 
