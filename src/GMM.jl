@@ -130,6 +130,40 @@ end
 # Main routine #
 # ------------ #
 
+
+"""
+Apply the Kronecker product along each row of A and B, which must have
+the same number of rows `n`. The output will be `n × na*nb`, where `na`
+and `nb` are the number of columns in A and B, respectively.
+
+The structure of the output is such that
+
+    row_kron(A, B)[i, :] = kron(A[i,: ], B[i, :])
+"""
+function row_kron{S,T}(A::Matrix{S}, B::Matrix{T})
+    # get input dimensions
+    nobsa, na = size(A)
+    nobsb, nb = size(B)
+
+    @assert nobsa == nobsb "A and B must have same number of rows"
+
+    # allocate output
+    out_type = promote_type(S, T)
+    out = Array(out_type, nobsa, na*nb)
+
+    # fill in each element. To do this we make sure we access each array
+    # consistent with its column major memory layout.
+    for ia=1:na
+        for ib=1:nb
+            for t=1:nobsa
+                out[t, nb*(ia-1) + ib] = A[t, ia] * B[t, ib]
+            end
+        end
+    end
+    out
+end
+
+
 """
 TODO: Document the rest of the arguments
 
@@ -145,18 +179,21 @@ model. It can have one of two call signatures:
 
 The `mf` function should return an object of type Array{Float64, 2}
 """
-function gmm(mf::Function, theta::Vector, W::Array{Float64, 2};
+function gmm(mf::Function, theta::Vector, W::Matrix{Float64},
+             instruments::Union(Nothing, Matrix{Float64})=nothing;
              solver = IpoptSolver(hessian_approximation="limited-memory"),
              data=nothing,
              mgr::IterationManager=OneStepGMM())
     npar = length(theta)
     theta_l = fill(-Inf, npar)
     theta_u = fill(+Inf, npar)
-    gmm(mf, theta, theta_l, theta_u, W,  solver = solver, data=data, mgr=mgr)
+    gmm(mf, theta, theta_l, theta_u, W, instruments;
+        solver=solver, data=data, mgr=mgr)
 end
 
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
-             W::Array{Float64, 2};
+             W::Matrix{Float64},
+             instruments::Union(Nothing, Matrix{Float64})=nothing;
              solver = IpoptSolver(hessian_approximation="limited-memory"),
              data=nothing,
              mgr::IterationManager=OneStepGMM())
@@ -165,9 +202,18 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     #       internally from now on.
     _mf(theta) = max_args(mf) == 1 ? mf(theta): mf(theta, data)
 
-    mf0        = _mf(theta)
+    # Instrument handling here... use _mfi internally afterwards
+    if instruments !== nothing
+        _mfi(theta) = row_kron(_mf(theta), instruments)
+    else
+        _mfi(theta) = _mf(theta)
+    end
+
+    mf0        = _mfi(theta)
     nobs, nmom = size(mf0)
     npar       = length(theta)
+
+    @show nmom
 
     nl         = length(theta_l)
     nu         = length(theta_u)
@@ -177,8 +223,8 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     @assert nobs > nmom
     @assert nmom >= npar
 
-    ## mf is n x m
-    smf(theta) = reshape(sum(_mf(theta),1), nmom, 1);
+    ## mf is nobs x npar
+    smf(theta) = reshape(sum(_mfi(theta),1), nmom, 1);
     smf!(θ::Vector, gg) = gg[:] = smf(θ)
 
     Dsmf = ForwardDiff.forwarddiff_jacobian(smf!, Float64, fadtype=:dual,
@@ -193,11 +239,11 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     ist = IterationState(0, 10.0, theta)
 
     # Define these outside while loop so they are available after it
-    NLPE = GMMNLPE(_mf, smf, Dsmf, W)
+    NLPE = GMMNLPE(_mfi, smf, Dsmf, W)
     m = MathProgSolverInterface.model(solver)
 
     while !(finished(mgr, ist))
-        NLPE = GMMNLPE(_mf, smf, Dsmf, W)
+        NLPE = GMMNLPE(_mfi, smf, Dsmf, W)
         m = MathProgSolverInterface.model(solver)
         MathProgSolverInterface.loadnonlinearproblem!(m, npar, 0, l, u, lb,
                                                       ub, :Min, NLPE)
@@ -206,7 +252,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
 
         # update theta and W
         theta = MathProgSolverInterface.getsolution(m)
-        W = optimal_W(_mf, theta, mgr.k)
+        W = optimal_W(_mfi, theta, mgr.k)
 
         # update iteration state
         ist.n += 1
