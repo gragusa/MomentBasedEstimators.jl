@@ -156,7 +156,7 @@ function row_kron{S,T}(A::Matrix{S}, B::Matrix{T})
     for ia=1:na
         for ib=1:nb
             for t=1:nobsa
-                out[t, nb*(ia-1) + ib] = A[t, ia] * B[t, ib]
+                @inbounds out[t, nb*(ia-1) + ib] = A[t, ia] * B[t, ib]
             end
         end
     end
