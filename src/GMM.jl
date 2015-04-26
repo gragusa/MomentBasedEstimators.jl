@@ -11,34 +11,7 @@ using Distributions
 import MathProgBase.MathProgSolverInterface
 import CovarianceMatrices.RobustVariance
 
-# -------------- #
-# Main GMM Types #
-# -------------- #
 
-type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
-    mf::Function
-    smf::Function
-    Dmf::Function
-    W::Array{Float64, 2}
-end
-
-abstract MomentEstimatorResult
-
-type GMMResult <: MomentEstimatorResult
-    status::Symbol
-    objval::Real
-    coef::Array{Float64, 1}
-    nmom::Integer
-    npar::Integer
-    nobs::Integer
-end
-
-abstract MomentEstimator
-
-type GMMEstimator <: MomentEstimator
-    e::GMMNLPE
-    r::GMMResult
-end
 
 # ------------------ #
 # Iteration managers #
@@ -81,6 +54,37 @@ finished(::TwoStepGMM, ist::IterationState) = ist.n >= 2
 function finished(mgr::IterativeGMM, ist::IterationState)
     ist.n > mgr.maxiter || abs(ist.change) <= mgr.tol
 end
+
+# -------------- #
+# Main GMM Types #
+# -------------- #
+
+type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
+    mf::Function
+    smf::Function
+    Dmf::Function
+    mgr::IterationManager
+    W::Array{Float64, 2}    
+end
+
+abstract MomentEstimatorResult
+
+type GMMResult <: MomentEstimatorResult
+    status::Symbol
+    objval::Real
+    coef::Array{Float64, 1}
+    nmom::Integer
+    npar::Integer
+    nobs::Integer
+end
+
+abstract MomentEstimator
+
+type GMMEstimator <: MomentEstimator
+    e::GMMNLPE
+    r::GMMResult
+end
+
 
 # ----------------------------- #
 # MathProgBase solver interface #
@@ -193,11 +197,11 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     ist = IterationState(0, 10.0, theta)
 
     # Define these outside while loop so they are available after it
-    NLPE = GMMNLPE(_mf, smf, Dsmf, W)
+    NLPE = GMMNLPE(_mf, smf, Dsmf, mgr, W)
     m = MathProgSolverInterface.model(solver)
 
     while !(finished(mgr, ist))
-        NLPE = GMMNLPE(_mf, smf, Dsmf, W)
+        NLPE = GMMNLPE(_mf, smf, Dsmf, mgr, W)
         m = MathProgSolverInterface.model(solver)
         MathProgSolverInterface.loadnonlinearproblem!(m, npar, 0, l, u, lb,
                                                       ub, :Min, NLPE)
@@ -254,19 +258,21 @@ function StatsBase.vcov(me::MomentEstimator, k::RobustVariance=HC0())
     n = nobs(me)
     p = npar(me)
     S = shat(me, k)
-    (n.^2/(n-p))*pinv(Xt_invA_X(S, G))
+    (n.^2/(n-p))*pinv(G'*pinv(S)*G)
 end
 
 function StatsBase.stderr(me::MomentEstimator, k::RobustVariance=HC0())
     sqrt(diag(vcov(me, k)))
 end
 
-function J_test(me::GMMEstimator)
+function J_test(me::GMMEstimator, k::RobustVariance=me.e.mgr.k)
     # NOTE: because objective is sum of mf instead of typical mean of mf,
     #       there is no need to multiply by $T$ here (already done in obj)
-    j = objval(me)
+    #j = objval(me)
+    g = mean(momentfunction(me), 1)
+    S = pinv(shat(me, k))
+    j = nobs(me)*(g*S*g')
     p = df(me) > 0 ? ccdf(Chisq(df(me)), j) : NaN
-
     # sometimes p is garbage, so we clamp it to be within reason
     return j, clamp(p, eps(), Inf)
 end
@@ -276,7 +282,7 @@ end
 # --------------- #
 
 function StatsBase.coeftable(me::MomentEstimator,
-                             k::RobustVariance=HC0())
+                             k::RobustVariance=me.e.mgr.k)
     cc = coef(me)
     se = stderr(me, k)
     zz = z_stats(me, k)
@@ -287,7 +293,7 @@ function StatsBase.coeftable(me::MomentEstimator,
 end
 
 function show_extra(me::GMMEstimator)
-    j, p = J_test(me)
+    j, p = J_test(me, me.e.mgr.k)
     "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
 end
 
@@ -297,7 +303,7 @@ show_extra(me::MomentEstimator) = ""
 
 function Base.writemime{T<:MomentEstimator}(io::IO, ::MIME"text/plain", me::T)
     # get coef table and j-test
-    ct = coeftable(me)
+    ct = coeftable(me, me.e.mgr.k)
 
     # show info for our model
     println(io, "$(T): $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
@@ -312,7 +318,7 @@ function Base.writemime{T<:MomentEstimator}(io::IO, ::MIME"text/plain", me::T)
     show(io, ct)
 end
 
-export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov, optimal_W
+export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov, optimal_W, TwoStepGMM
 
 
 
