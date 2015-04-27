@@ -40,3 +40,9 @@ step_1     = gmm(g, [1.0, 1.0], eye(3), data=x)
 step_2_hac = gmm(g, coef(step_1),
                  optimal_W(step_1, QuadraticSpectralKernel(0.91469)), data=x)
 step_2_iid = gmm(g, coef(step_1), optimal_W(step_1, HC0()),  data=x)
+
+
+step_qs_mgr = gmm(g, [1.,1.], eye(3), data = x, mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)))
+
+step_iid_mgr = gmm(g, [1.,1.], eye(3), data = x, mgr = TwoStepGMM(HC0()))
+

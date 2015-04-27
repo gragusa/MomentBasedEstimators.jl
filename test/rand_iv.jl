@@ -9,11 +9,14 @@ y, x, z = ModelsGenerators.sim_iv_d01(CP = 100)
 
 g(theta) = z.*(y-x*theta)
 
+W = inv(z'z);
+
 W = eye(5);
 out = gmm(g, [.1], W)
 
-W = pinv(GMM.mfvcov(out, HC1()))
-out = GMM.gmm(g, [.1], W)
+
+W = pinv(GMM.mfvcov(out, HC0())*100)
+out = GMM.gmm(g, [.0], W)
 
 coef(out)
 sqrt(vcov(out))
