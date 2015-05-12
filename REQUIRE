@@ -1,0 +1,10 @@
+julia 0.3
+StatsBase 0.6.10
+PDMats
+ForwardDiff
+MathProgBase
+Ipopt
+StatsBase
+Reexport
+Distributions
+CovarianceMatrices
