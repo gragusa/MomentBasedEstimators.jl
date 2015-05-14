@@ -290,7 +290,7 @@ function StatsBase.stderr(me::MomentEstimator, mgr::IterationManager)
 end
 
 function StatsBase.stderr(me::MomentEstimator, k::RobustVariance)
-    sqrt(diag(vcov(me, k, mgr)))
+    sqrt(diag(vcov(me, k, me.e.mgr)))
 end
 
 function J_test(me::GMMEstimator, k::RobustVariance=me.e.mgr.k)
