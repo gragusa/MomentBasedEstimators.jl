@@ -289,15 +289,19 @@ function StatsBase.stderr(me::MomentEstimator, mgr::IterationManager)
     sqrt(diag(vcov(me, mgr.k, mgr)))
 end
 
+function StatsBase.stderr(me::MomentEstimator, k::RobustVariance)
+    sqrt(diag(vcov(me, k, mgr)))
+end
+
 function J_test(me::GMMEstimator, k::RobustVariance=me.e.mgr.k)
     # NOTE: because objective is sum of mf instead of typical mean of mf,
     #       there is no need to multiply by $T$ here (already done in obj)
-    j = objval(me)
+    # j = objval(me)
     ## TODO: Decision: should we use objval or what is below
     ##                 that recalculate the S matrix
-    ## g = mean(momentfunction(me), 1)
-    ## S = pinv(shat(me, k))
-    ## j = (nobs(me)*(g*S*g'))[1]
+    g = mean(momentfunction(me), 1)
+    S = pinv(shat(me, k))
+    j = (nobs(me)*(g*S*g'))[1]
     p = df(me) > 0 ? ccdf(Chisq(df(me)), j) : NaN
     # sometimes p is garbage, so we clamp it to be within reason
     return j, clamp(p, eps(), Inf)
