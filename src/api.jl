@@ -42,7 +42,7 @@ end
 
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
              W::Array{Float64, 2};
-             solver = IpoptSolver(hessian_approximation="limited-memory"),
+             solver=IpoptSolver(hessian_approximation="limited-memory", print_level=2),
              data=nothing,
              mgr::IterationManager=OneStepGMM())
 
