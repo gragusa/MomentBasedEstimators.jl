@@ -116,6 +116,7 @@ function Base.writemime{T<:MomentEstimator}(io::IO, ::MIME"text/plain", me::T)
     show(io, ct)
 end
 
+include("util.jl")
 include("gmm_mathprogbase.jl")
 include("api.jl")
 include("post_estimation.jl")
