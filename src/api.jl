@@ -2,6 +2,9 @@
 # Main routine #
 # ------------ #
 
+const DEFAULT_SOLVER = IpoptSolver(hessian_approximation="limited-memory",
+                                   print_level=2)
+
 """
 TODO: Document the rest of the arguments
 
@@ -19,8 +22,7 @@ The `mf` function should return an object of type Array{Float64, 2}
 """
 function gmm(mf::Function, theta::Vector, W::Array{Float64, 2},
              instruments::Union(Nothing, Matrix{Float64})=nothing;
-             solver = IpoptSolver(hessian_approximation="limited-memory"),
-             data=nothing,
+             solver=DEFAULT_SOLVER, data=nothing,
              mgr::IterationManager=OneStepGMM())
     npar = length(theta)
     theta_l = fill(-Inf, npar)
@@ -32,7 +34,7 @@ end
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
              W::Array{Float64, 2},
              instruments::Union(Nothing, Matrix{Float64})=nothing;
-             solver=IpoptSolver(hessian_approximation="limited-memory", print_level=2),
+             solver=DEFAULT_SOLVER,
              data=nothing,
              mgr::IterationManager=OneStepGMM())
 
