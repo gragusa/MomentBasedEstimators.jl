@@ -1,4 +1,4 @@
-using GMM
+using MomentBasedEstimators
 using FactCheck
 
 facts("Testing basic interface") do
