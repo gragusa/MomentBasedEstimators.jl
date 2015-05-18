@@ -110,7 +110,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
 end
 
 
-function StatsBase.coeftable(me::MomentEstimator,
+function StatsBase.coeftable(me::MomentBasedEstimator,
                              k::RobustVariance=me.e.mgr.k)
     cc = coef(me)
     se = stderr(me, k)
