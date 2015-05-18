@@ -55,7 +55,7 @@ facts("Test utilities") do
 
         rows_good = true
         for row=1:400
-            rows_good = out[row, :] == kron(a[row, :], b[row, :])
+            rows_good &= out[row, :] == kron(a[row, :], b[row, :])
         end
         @fact rows_good => true
     end
