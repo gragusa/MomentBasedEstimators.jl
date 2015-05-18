@@ -10,26 +10,26 @@ function optimal_W(mf::Function, theta::Vector, k::RobustVariance)
     W
 end
 
-status(me::MomentEstimator) = me.r.status
-StatsBase.coef(me::MomentEstimator) = me.r.coef
-objval(me::MomentEstimator) = me.r.objval
-momentfunction(me::MomentEstimator) = me.e.mf(coef(me))
-jacobian(me::MomentEstimator) = me.e.Dmf(coef(me))
-mfvcov(me::MomentEstimator, k::RobustVariance) = vcov(momentfunction(me), k)
-nobs(me::MomentEstimator) = me.r.nobs
-npar(me::MomentEstimator) = me.r.npar
-nmom(me::MomentEstimator) = me.r.nmom
-df(me::MomentEstimator) = nmom(me) - npar(me)
-z_stats(me::MomentEstimator, k::RobustVariance) = coef(me) ./ stderr(me, k)
-p_values(me::MomentEstimator, k::RobustVariance) = 2*ccdf(Normal(), z_stats(me, k))
+status(me::MomentBasedEstimator) = me.r.status
+StatsBase.coef(me::MomentBasedEstimator) = me.r.coef
+objval(me::MomentBasedEstimator) = me.r.objval
+momentfunction(me::MomentBasedEstimator) = me.e.mf(coef(me))
+jacobian(me::GMMEstimator) = me.e.Dmf(coef(me))
+mfvcov(me::MomentBasedEstimator, k::RobustVariance) = vcov(momentfunction(me), k)
+nobs(me::MomentBasedEstimator) = me.r.nobs
+npar(me::MomentBasedEstimator) = me.r.npar
+nmom(me::MomentBasedEstimator) = me.r.nmom
+df(me::MomentBasedEstimator) = nmom(me) - npar(me)
+z_stats(me::MomentBasedEstimator, k::RobustVariance) = coef(me) ./ stderr(me, k)
+p_values(me::MomentBasedEstimator, k::RobustVariance) = 2*ccdf(Normal(), z_stats(me, k))
 shat(me::GMMEstimator, k::RobustVariance) = mfvcov(me, k)
 optimal_W(me::GMMEstimator, k::RobustVariance) = pinv(full(shat(me, k)*nobs(me)))
 
 
-StatsBase.vcov(me::MomentEstimator, k::RobustVariance) = vcov(me, k, me.e.mgr)
-StatsBase.vcov(me::MomentEstimator) = vcov(me, me.e.mgr.k, me.e.mgr)
+StatsBase.vcov(me::GMMEstimator, k::RobustVariance) = vcov(me, k, me.e.mgr)
+StatsBase.vcov(me::GMMEstimator) = vcov(me, me.e.mgr.k, me.e.mgr)
 
-function StatsBase.vcov(me::MomentEstimator, k::RobustVariance, mgr::TwoStepGMM)
+function StatsBase.vcov(me::GMMEstimator, k::RobustVariance, mgr::TwoStepGMM)
     G = jacobian(me)
     n = nobs(me)
     p = npar(me)
@@ -41,7 +41,7 @@ function StatsBase.vcov(me::MomentEstimator, k::RobustVariance, mgr::TwoStepGMM)
     (n.^2/(n-p))*pinv(G'*pinv(S)*G)
 end
 
-function StatsBase.vcov(me::MomentEstimator, k::RobustVariance, mgr::OneStepGMM)
+function StatsBase.vcov(me::GMMEstimator, k::RobustVariance, mgr::OneStepGMM)
     G = jacobian(me)
     n = nobs(me)
     p = npar(me)
@@ -54,15 +54,15 @@ function StatsBase.vcov(me::MomentEstimator, k::RobustVariance, mgr::OneStepGMM)
     (n.^2/(n-p))*A*B*A
 end
 
-function StatsBase.stderr(me::MomentEstimator)
+function StatsBase.stderr(me::GMMEstimator)
     sqrt(diag(vcov(me, me.e.mgr.k, me.e.mgr)))
 end
 
-function StatsBase.stderr(me::MomentEstimator, mgr::IterationManager)
+function StatsBase.stderr(me::GMMEstimator, mgr::IterationManager)
     sqrt(diag(vcov(me, mgr.k, mgr)))
 end
 
-function StatsBase.stderr(me::MomentEstimator, k::RobustVariance)
+function StatsBase.stderr(me::GMMEstimator, k::RobustVariance)
     sqrt(diag(vcov(me, k, me.e.mgr)))
 end
 
