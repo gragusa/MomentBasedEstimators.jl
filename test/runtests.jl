@@ -39,4 +39,38 @@ facts("Testing basic interface") do
     end
 end
 
+
+facts("Test utilities") do
+    context("test row_kron") do
+        h = ["a" "b"; "c" "d"]
+        z = ["1" "2" "3"; "4" "5" "6"]
+        want = ["a1" "a2" "a3" "b1" "b2" "b3"; "c4" "c5" "c6" "d4" "d5" "d6"]
+        @fact GMM.row_kron(h, z) => want
+
+        # now test on some bigger matrices
+        a = randn(400, 3)
+        b = randn(400, 5)
+        out = GMM.row_kron(a, b)
+        @fact size(out) => (400, 15)
+
+        rows_good = true
+        for row=1:400
+            rows_good &= out[row, :] == kron(a[row, :], b[row, :])
+        end
+        @fact rows_good => true
+    end
+
+    context("test max_args") do
+        foo(x, y, z) = nothing  # standard 3 args
+        bar(x, z=100) = nothing  # standard 2 args with default value
+        baz = (x, y, z)-> nothing  # anonymous 3 args
+        qux(a; b=100) = nothing  # standard 1 with 1 kwarg (kwarg not counted)
+
+        @fact GMM.max_args(foo) => 3
+        @fact GMM.max_args(bar) => 2
+        @fact GMM.max_args(baz) => 3
+        @fact GMM.max_args(qux) => 1
+    end
+end
+
 FactCheck.exitstatus()

@@ -1,19 +1,9 @@
-"""
-Tells maximum number of arguments for a generic or anonymous function
-"""
-function max_args(f::Function)
-    if isgeneric(f)
-        return methods(f).max_args
-    else
-        # anonymous function
-        # NOTE: This might be quite fragile, but works on 0.3.6 and 0.4-dev
-        return length(Base.uncompressed_ast(f.code).args[1])
-    end
-end
-
 # ------------ #
 # Main routine #
 # ------------ #
+
+const DEFAULT_SOLVER = IpoptSolver(hessian_approximation="limited-memory",
+                                   print_level=2)
 
 """
 TODO: Document the rest of the arguments
@@ -30,27 +20,40 @@ model. It can have one of two call signatures:
 
 The `mf` function should return an object of type Array{Float64, 2}
 """
-function gmm(mf::Function, theta::Vector, W::Array{Float64, 2};
-             solver = IpoptSolver(hessian_approximation="limited-memory"),
-             data=nothing,
+function gmm(mf::Function, theta::Vector, W::Array{Float64, 2},
+             instruments::Union(Nothing, Matrix{Float64})=nothing;
+             solver=DEFAULT_SOLVER, data=nothing,
              mgr::IterationManager=OneStepGMM())
     npar = length(theta)
     theta_l = fill(-Inf, npar)
     theta_u = fill(+Inf, npar)
-    gmm(mf, theta, theta_l, theta_u, W,  solver = solver, data=data, mgr=mgr)
+    gmm(mf, theta, theta_l, theta_u, W,  instruments, solver=solver, data=data,
+        mgr=mgr)
 end
 
 function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
-             W::Array{Float64, 2};
-             solver=IpoptSolver(hessian_approximation="limited-memory", print_level=2),
+             W::Array{Float64, 2},
+             instruments::Union(Nothing, Matrix{Float64})=nothing;
+             solver=DEFAULT_SOLVER,
              data=nothing,
              mgr::IterationManager=OneStepGMM())
 
     # NOTE: all handling of data happens right here, because we will use _mf
     #       internally from now on.
-    _mf(theta) = max_args(mf) == 1 ? mf(theta): mf(theta, data)
+    if max_args(mf) == 1
+        _mf(theta) = mf(theta)
+    else
+        _mf(theta) = mf(theta, data)
+    end
 
-    mf0        = _mf(theta)
+    # Instrument handling here... use _mfi internally afterwards
+    if instruments === nothing
+        _mfi(theta) = _mf(theta)
+    else
+        _mfi(theta) = row_kron(_mf(theta), instruments)
+    end
+
+    mf0        = _mfi(theta)
     nobs, nmom = size(mf0)
     npar       = length(theta)
 
@@ -63,7 +66,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     @assert nmom >= npar
 
     ## mf is n x m
-    smf(theta) = reshape(sum(_mf(theta),1), nmom, 1);
+    smf(theta) = reshape(sum(_mfi(theta),1), nmom, 1);
     smf!(θ::Vector, gg) = gg[:] = smf(θ)
 
     Dsmf = ForwardDiff.forwarddiff_jacobian(smf!, Float64, fadtype=:dual,
@@ -78,11 +81,11 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
     ist = IterationState(0, 10.0, theta)
 
     # Define these outside while loop so they are available after it
-    NLPE = GMMNLPE(_mf, smf, Dsmf, mgr, W)
+    NLPE = GMMNLPE(_mfi, smf, Dsmf, mgr, W)
     m = MathProgSolverInterface.model(solver)
 
     while !(finished(mgr, ist))
-        NLPE = GMMNLPE(_mf, smf, Dsmf, mgr, W)
+        NLPE = GMMNLPE(_mfi, smf, Dsmf, mgr, W)
         m = MathProgSolverInterface.model(solver)
         MathProgSolverInterface.loadnonlinearproblem!(m, npar, 0, l, u, lb,
                                                       ub, :Min, NLPE)
@@ -91,7 +94,7 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
 
         # update theta and W
         theta = MathProgSolverInterface.getsolution(m)
-        W = optimal_W(_mf, theta, mgr.k)
+        W = optimal_W(_mfi, theta, mgr.k)
 
         # update iteration state
         ist.n += 1
