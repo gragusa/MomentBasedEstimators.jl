@@ -12,7 +12,7 @@ facts("Testing basic interface") do
             @fact cfe[j] => roughly(cft[j])
             @fact sde[j] => roughly(sdt[j])
         end
-        Je, pe = GMM.J_test(step_iid_mgr)
+        Je, pe = MomentBasedEstimators.J_test(step_iid_mgr)
         ## This is the objective value, which is the J-test
         ## for other softwares
         ov     = 1.4398836656920428
@@ -29,7 +29,7 @@ facts("Testing basic interface") do
         for j = 1:2
             @fact cfe[j] => roughly(cf_stata[j], atol=1e-3)
         end
-        Je, pe = GMM.J_test(two_step)
+        Je, pe = MomentBasedEstimators.J_test(two_step)
         Jt, pt = (1.7433378725860427,0.41825292894063326)
         ## This is the stata J-test
         ov = 1.97522
@@ -45,12 +45,12 @@ facts("Test utilities") do
         h = ["a" "b"; "c" "d"]
         z = ["1" "2" "3"; "4" "5" "6"]
         want = ["a1" "a2" "a3" "b1" "b2" "b3"; "c4" "c5" "c6" "d4" "d5" "d6"]
-        @fact GMM.row_kron(h, z) => want
+        @fact MomentBasedEstimators.row_kron(h, z) => want
 
         # now test on some bigger matrices
         a = randn(400, 3)
         b = randn(400, 5)
-        out = GMM.row_kron(a, b)
+        out = MomentBasedEstimators.row_kron(a, b)
         @fact size(out) => (400, 15)
 
         rows_good = true
@@ -66,10 +66,10 @@ facts("Test utilities") do
         baz = (x, y, z)-> nothing  # anonymous 3 args
         qux(a; b=100) = nothing  # standard 1 with 1 kwarg (kwarg not counted)
 
-        @fact GMM.max_args(foo) => 3
-        @fact GMM.max_args(bar) => 2
-        @fact GMM.max_args(baz) => 3
-        @fact GMM.max_args(qux) => 1
+        @fact MomentBasedEstimators.max_args(foo) => 3
+        @fact MomentBasedEstimators.max_args(bar) => 2
+        @fact MomentBasedEstimators.max_args(baz) => 3
+        @fact MomentBasedEstimators.max_args(qux) => 1
     end
 end
 

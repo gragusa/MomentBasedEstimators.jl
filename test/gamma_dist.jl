@@ -14,5 +14,5 @@ function g_gamma(θ)
          1./income_data - λ/(P - 1))
 end
 
-two_step = GMM.gmm(g_gamma, [2.40, 0.08], [0.0, 0.0], [Inf, Inf], eye(4);
-                   mgr=GMM.TwoStepGMM())
+two_step = MomentBasedEstimators.gmm(g_gamma, [2.40, 0.08], [0.0, 0.0], [Inf, Inf], eye(4);
+                   mgr=MomentBasedEstimators.TwoStepGMM())
