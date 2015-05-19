@@ -76,7 +76,7 @@ function J_test(me::GMMEstimator, k::RobustVariance=me.e.mgr.k)
 end
 
 
-function StatsBase.coeftable(me::MomentEstimator,
+function StatsBase.coeftable(me::GMMEstimator,
                              k::RobustVariance=me.e.mgr.k)
     cc = coef(me)
     se = stderr(me, k)
