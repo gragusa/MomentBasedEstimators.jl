@@ -74,3 +74,15 @@ function J_test(me::GMMEstimator, k::RobustVariance=me.e.mgr.k)
     # sometimes p is garbage, so we clamp it to be within reason
     return j, clamp(p, eps(), Inf)
 end
+
+
+function StatsBase.coeftable(me::MomentEstimator,
+                             k::RobustVariance=me.e.mgr.k)
+    cc = coef(me)
+    se = stderr(me, k)
+    zz = z_stats(me, k)
+    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
+              ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
+              ["x$i" for i = 1:npar(me)],
+              4)
+end

@@ -108,15 +108,3 @@ function gmm(mf::Function, theta::Vector, theta_l::Vector, theta_u::Vector,
                   nmom, npar, nobs)
     GMMEstimator(NLPE, r)
 end
-
-
-function StatsBase.coeftable(me::MomentBasedEstimator,
-                             k::RobustVariance=me.e.mgr.k)
-    cc = coef(me)
-    se = stderr(me, k)
-    zz = z_stats(me, k)
-    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
-              ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
-              ["x$i" for i = 1:npar(me)],
-              4)
-end
