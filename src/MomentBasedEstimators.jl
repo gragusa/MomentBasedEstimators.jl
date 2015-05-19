@@ -1,4 +1,4 @@
-module GMM
+module MomentBasedEstimators
 
 using PDMats
 using ForwardDiff
@@ -69,9 +69,9 @@ type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
     W::Array{Float64, 2}
 end
 
-abstract MomentEstimatorResult
+abstract MomentBasedEstimatorResult
 
-type GMMResult <: MomentEstimatorResult
+type GMMResult <: MomentBasedEstimatorResult
     status::Symbol
     objval::Real
     coef::Array{Float64, 1}
@@ -80,9 +80,9 @@ type GMMResult <: MomentEstimatorResult
     nobs::Integer
 end
 
-abstract MomentEstimator
+abstract MomentBasedEstimator
 
-type GMMEstimator <: MomentEstimator
+type GMMEstimator <: MomentBasedEstimator
     e::GMMNLPE
     r::GMMResult
 end
@@ -97,9 +97,9 @@ function show_extra(me::GMMEstimator)
 end
 
 # default to nothing
-show_extra(me::MomentEstimator) = ""
+show_extra(me::MomentBasedEstimator) = ""
 
-function Base.writemime{T<:MomentEstimator}(io::IO, ::MIME"text/plain", me::T)
+function Base.writemime{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
     # get coef table and j-test
     ct = coeftable(me, me.e.mgr.k)
 
