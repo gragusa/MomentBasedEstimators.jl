@@ -67,6 +67,7 @@ type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
     Dmf::Function
     mgr::IterationManager
     W::Array{Float64, 2}
+    x0::Array{Float64, 2}
 end
 
 abstract MomentBasedEstimatorResult
@@ -75,6 +76,7 @@ type GMMResult <: MomentBasedEstimatorResult
     status::Symbol
     objval::Real
     coef::Array{Float64, 1}
+    H::Array{Float64,2}      ## Hessian of the objective function
     nmom::Integer
     npar::Integer
     nobs::Integer
@@ -86,6 +88,44 @@ type GMMEstimator <: MomentBasedEstimator
     e::GMMNLPE
     r::GMMResult
 end
+
+type ProblemStatus
+    init_status::Symbol
+end 
+    
+
+
+type Constraint
+    leq::LinearEqConstraint
+    lineq::LinearIneqConstraint
+    nleq::NonLinearEqConstraint
+    nlineq::NonLinearIneqConstraint
+end 
+
+type LinearEqConstraint 
+    A::Array{Float64, 2}  ## Atheta   == b
+    b::Array{Float64, 1}
+    MMLinearEqConstraint() = new()
+end
+
+type LinearIneqConstraint 
+    A::Array{Float64, 2}  ## Atheta   <= b
+    b::Array{Float64, 1}
+    MMLinearIneqConstraint() = new()
+end
+
+type NonLinearEqConstraint 
+    g::Function           ## g(theta) == 0
+    MMLinearEqConstraint() = new()
+end 
+
+type NonLinearIneqConstraint 
+    h::Function           ## h(theta) <= 0
+    MMNonLinearIneqConstraint() = new()
+end
+
+
+
 
 # --------------- #
 # Display methods #
