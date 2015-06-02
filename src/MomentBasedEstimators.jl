@@ -93,7 +93,12 @@ end
 
 function show_extra(me::GMMEstimator)
     j, p = J_test(me, me.e.mgr.k)
-    "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+    """
+
+    J-test: $(round(j, 3)) (P-value: $(round(p, 3)))
+
+    Solver status is $(status(me)) and objval is $(objval(me))
+    """
 end
 
 # default to nothing
@@ -104,7 +109,8 @@ function Base.writemime{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me:
     ct = coeftable(me, me.e.mgr.k)
 
     # show info for our model
-    println(io, "$(T): $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
+    println(io, "$(T): $(npar(me)) parameter(s) with $(nmom(me)) moment(s)\n")
+    println(io, "Estimates based on $(nobs(me)) observations")
 
     # Show extra information for this type
     println(io, show_extra(me))

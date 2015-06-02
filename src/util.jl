@@ -41,21 +41,10 @@ respectively. The output matrix will be `(r, ca*cb)`
 The `i`th row of the output matrix will be equal to
 `kron(A[i,:], B[i,:])`
 """
-:row_kron
-
 function row_kron{S,T}(A::AbstractMatrix{S}, B::AbstractMatrix{T})
     nobsa, na = size(A)
     nobsb, nb = size(B)
     out = Array(promote_type(S, T), nobsa, na*nb)
-    row_kron!(A, B, out)
-    out
-end
-
-# specialized version for sparse matrices
-function row_kron{S,T}(A::SparseMatrixCSC{S}, B::SparseMatrixCSC{T})
-    nobsa, na = size(A)
-    nobsb, nb = size(B)
-    out = spzeros(promote_type(S, T), nobsa, na*nb)
     row_kron!(A, B, out)
     out
 end
