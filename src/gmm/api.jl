@@ -22,61 +22,8 @@ model. It can have one of two call signatures:
 The `mf` function should return an object of type Array{Float64, 2}
 """
 
-
-type GMMProblem
-    e::MomentBasedEstimators.GMMNLPE
-    r::MomentBasedEstimators.GMMResult
-    c::Constraint
-    s::AbstractMathProgSolver
-    f::ProblemStatus
-    function GeneralizedMethodOfMomentsProblem()
-        nn   = new()
-        nn.s = DEFAULT_SOLVER
-        nn.f = :NotInitialized
-        nn
-    end
-end
-
- 
-function addMomentFunction!(g::GMMProblem, f::Function, theta::Vector; data = nothing)
-    _mf(theta) = data == nothing ? f(theta) : f(theta, data)
-    g0   = _mf(theta); n, m = size(g0)
-    mf = MomentFunction(_mf, f, data, n, k, m)
-    g.e.mf  = mf
-    g.e.mgr = defaultItarationManager
-    g.e.W   = eye(m)
-    g.e.x0  = theta
-end
-
-
-addVarBounds!(g::GMMProblem, 
-addInstruments!(g::Function, Z::Matrix{Float64}) = nothing   
-setSolver(g::GMM, s::solver) = g.s = Solver    
-setSolverOptions!(g::GMM, args...) = setOptions!(g.s, args...)
-
-
-function solve!(g::GMMProblem)
-    ## Solve or resolve
-    if init_status(g) == :NotInitialized
-        initialize!(g)
-    end
-
-    _solve!(g)
-end 
-
-        
-    
-
-
-
-
-
-
-
-
-
 function gmm(mf::Function, theta::Vector, W::Array{Float64, 2};
-             solver=DEFAULT_SOLVER, data=nothing,            
+             solver=DEFAULT_SOLVER, data=nothing,
              mgr::IterationManager=OneStepGMM())
     npar = length(theta)
     theta_l = fill(-Inf, npar)
