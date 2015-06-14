@@ -71,5 +71,7 @@ bw(k::SmoothingKernel) = k.S
 κ₁(k::SmoothingKernel) = k.κ₁
 κ₂(k::SmoothingKernel) = k.κ₂
 
+smooth{T}(g::Array{T, 2}, k::IdentitySmoother) = g
+smooth{T}(g::Array{T, 2}, k::SmoothingKernel) = k.smoother(g)
 
 

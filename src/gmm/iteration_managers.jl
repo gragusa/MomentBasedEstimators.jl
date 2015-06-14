@@ -29,13 +29,13 @@ function IterativeGMM(;k::RobustVariance=HC0(), tol::Float64=1e-12,
 end
 
 type IterationState
-    n::Int
-    change::Float64
-    prev::Array  # previous value
+    n::Array{Int, 1}
+    change::Array{Float64, 1}
+    prev::Array{Float64, 1}  # previous value
 end
 
-finished(::OneStepGMM, ist::IterationState) = ist.n >= 1
-finished(::TwoStepGMM, ist::IterationState) = ist.n >= 2
+finished(::OneStepGMM, ist::IterationState) = ist.n[1] > 1
+finished(::TwoStepGMM, ist::IterationState) = ist.n[1] > 2
 function finished(mgr::IterativeGMM, ist::IterationState)
-    ist.n > mgr.maxiter || abs(ist.change) <= mgr.tol
+    ist.n[1] > mgr.maxiter[1] || abs(ist.change[1]) <= mgr.tol
 end

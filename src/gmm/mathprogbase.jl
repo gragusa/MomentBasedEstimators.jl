@@ -10,20 +10,31 @@ function MathProgSolverInterface.initialize(d::GMMEstimator, rf::Vector{Symbol})
     end
 end
 
-MathProgSolverInterface.features_available(d::GMMEstimator) = [:Grad, :Jac, :Hess]
+MathProgSolverInterface.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
 
-function MathProgSolverInterface.eval_f(d::GMMEstimator, theta)
-    gn = d.smf(theta)
-    (gn'd.W*gn)[1]
+function MathProgSolverInterface.eval_f(e::GMMEstimator, theta)
+    idx = e.ist.n[1]   
+    gn = e.mf.sn(theta)
+    ## TODO: Rewrite this in a more human form
+    (gn'e.W[idx]*gn)[1]
 end
 
-MathProgSolverInterface.eval_g(d::GMMEstimator, Dg, x) = nothing
+eval_g{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}, g, theta) = nothing
 
-function MathProgSolverInterface.eval_grad_f(d::GMMEstimator, grad_f, theta)
-    grad_f[:] = 2*d.Dmf(theta)'*(d.W*d.smf(theta))
+function eval_g{V, T<:Constrained, S}(e::GMMEstimator{V, T, S}, g, theta)
+    nc = ncons(e)
+    g[:] = g.c.h(theta)
 end
 
-MathProgSolverInterface.jac_structure(d::GMMEstimator) = [],[]
-MathProgSolverInterface.eval_jac_g(d::GMMEstimator, J, x) = nothing
-MathProgSolverInterface.eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing
-MathProgSolverInterface.hesslag_structure(d::GMMEstimator) = [],[]
+function eval_grad_f(e::GMMEstimator, grad_f, theta)
+    ##grad_f[:] = 2*d.Dsn(theta)'*(d.W*d.sn(theta))
+    idx = e.ist.n[1]
+    gemm!('T', 'N', 2.0, e.mf.Dsn(theta), e.W[idx]*e.mf.sn(theta), 0.0, grad_f)
+end
+
+jac_structure{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}) = [],[]
+eval_jac_g{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}, J, x) = nothing
+
+hesslag_structure(d::GMMEstimator) = [],[]
+eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing
+

@@ -1,5 +1,6 @@
 abstract GenericMomentBasedEstimator <: MathProgBase.MathProgSolverInterface.AbstractNLPEvaluator
-
+abstract Constraint
+abstract Weighting
 
 type MomentFunction
     g::Function            ## Moment Function
@@ -83,27 +84,34 @@ type MomentBasedEstimatorResults
     H::Array{Float64,2}      ## Hessian of the objective function
 end
 
-type GMMEstimator <: GenericMomentBasedEstimator
+type GMMEstimator{V<:IterationManager, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
     mf::MomentFunction
+    c::S
     x0::Array{Float64, 1}
-    ub::Array{Float64, 1}
     lb::Array{Float64, 1}
-    mgr::IterationManager
-    W::Array{Float64, 2}
+    ub::Array{Float64, 1}
+    glb::Array{Float64, 1}    
+    gub::Array{Float64, 1}
+    mgr::V
+    ist::IterationState
+    W::Array{Array{Float64,2},1}
+    wtg::T
     gele::Int64
     hele::Int64
 end
 
-type MDEstimator <: GenericMomentBasedEstimator
+type MDEstimator{V<:Divergence, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
     mf::MomentFunction
+    c::S
     x0::Array{Float64, 1}
-    ub::Array{Float64, 1}
     lb::Array{Float64, 1}
-    wlb::Array{Float64, 1}
-    wub::Array{Float64, 1}
+    ub::Array{Float64, 1}
     glb::Array{Float64, 1}
     gub::Array{Float64, 1}
-    div::Divergence
+    wlb::Array{Float64, 1}
+    wub::Array{Float64, 1}
+    div::V
+    wtg::T
     gele::Int64
     hele::Int64
 end
@@ -113,33 +121,15 @@ type MomentBasedEstimatorOptions
     ##maybe optimization options?
 end
 
-type LinearEqualityConstraint
-    A::Array{Float64, 2}  ## Atheta   == b
-    b::Array{Float64, 1}
+type Unweighted <: Weighting end
+
+type Weighted <: Weighting
+    wtg::WeightVec{Float64}
 end
 
-type LinearInequalityConstraint
-    A::Array{Float64, 2}  ## Atheta   <= b
-    b::Array{Float64, 1}
-end
+type Unconstrained <: Constraint end
 
-type EqualityConstraint
-    h::Function           ## h(theta) == 0
-    Dh::Function
-    nc::Int64             ## # of constraints
-end
-
-type InequalityConstraint
-    h::Function           ## h(theta) <= 0
-    Dh::Function
-    nc::Int64             ## # of constraints
-end
-
-abstract MomentBasedEstimatorConstraint
-
-type Unconstrained <: MomentBasedEstimatorConstraint end
-
-type Constrained <: MomentBasedEstimatorConstraint
+type Constrained <: Constraint
     h::Function
     Dh::Function
     Hh::Function
@@ -156,10 +146,9 @@ DEFAULT_SOLVER(::GMMEstimator) = IpoptSolver(hessian_approximation="limited-memo
 DEFAULT_SOLVER(::MDEstimator)  = IpoptSolver(print_level=2)
 
 
-type MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MomentBasedEstimatorConstraint}
+type MomentBasedEstimator{T<:GenericMomentBasedEstimator}
     e::T
-    r::MomentBasedEstimatorResults
-    c::S
+    r::MomentBasedEstimatorResults    
     s::MathProgBase.AbstractMathProgSolver
     m::MathProgBase.AbstractMathProgModel
     status::Symbol
@@ -169,12 +158,15 @@ end
 function MomentBasedEstimator(e::GenericMomentBasedEstimator)
     MomentBasedEstimator(e,
         MomentBasedEstimatorResults(
-            :Uninitilized,
+            :Unsolved,
             0.,
             Array(Float64, e.mf.npar),
             Array(Float64, e.mf.npar, e.mf.npar)),
-            Unconstrained(),
         DEFAULT_SOLVER(e),
         MathProgSolverInterface.model(DEFAULT_SOLVER(e)),
         :Uninitialized)
 end
+
+setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m,m) for i=1:2]
+setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m,m) for i=1:1]
+setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m,m) for i=1:mgr.maxiter+1]

@@ -10,36 +10,38 @@ function MathProgSolverInterface.initialize(d::MDEstimator, rf::Vector{Symbol})
     end
 end
 
-MathProgBase.isobjlinear(d::MDEstimator) = false
-MathProgBase.isobjquadratic(d::MDEstimator) = false
-MathProgBase.isconstrlinear(d::MDEstimator, i::Int64) = false
+MathProgBase.isobjlinear(e::MDEstimator) = false
+MathProgBase.isobjquadratic(e::MDEstimator) = false
+MathProgBase.isconstrlinear(e::MDEstimator, i::Int64) = false
 
-features_available(d::MDEstimator) = [:Grad, :Jac, :Hess]
+MathProgSolverInterface.features_available(e::MDEstimator) = [:Grad, :Jac, :Hess]
 
-eval_f(d::MDEstimator, u) = Divergences.evaluate(d.div, u[1:d.momf.nobs])
-
-function MathProgSolverInterface.eval_g(d::MDEstimator, g, u)
-    n, m, k = size(d.momf)
-    p = u[1:n]
-    θ = u[(n+1):(n+k)]
-    @inbounds g[1:m]  = d.momf.ws(θ, p)
-    @inbounds g[m+1]  = sum(p)
+function eval_f{V, S, T<:Unweighted}(e::MDEstimator{V,S,T}, u)
+    Divergences.evaluate(e.div, u[1:e.mf.nobs])
 end
 
-function MathProgSolverInterface.eval_grad_f(d::MDEstimator, grad_f, u)
-    n, m, k = size(d.momf)
-    for j=1:n
-        @inbounds grad_f[j] = Divergences.gradient(d.div, u[j])
+function eval_grad_f{V, S, T<:Unweighted}(e::MDEstimator{V,S,T}, grad_f, u)
+    n, k, m = size(e.mf)
+    @simd for j=1:n
+        @inbounds grad_f[j] = Divergences.gradient(e.div, u[j])
     end
-    for j=(n+1):(n+k)
+    @simd for j=(n+1):(n+k)
         @inbounds grad_f[j] = 0.0
     end
 end
 
-function MathProgSolverInterface.jac_structure(d::MDEstimator)
-    n, m, k = size(d.momf)
-    rows = Array(Int64, d.gele)
-    cols = Array(Int64, d.gele)
+function eval_g{V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{V,S,T}, g, u)
+    n, k, m = size(e)
+    p = u[1:n]
+    theta = u[(n+1):(n+k)]
+    @inbounds g[1:m]  = e.mf.ws(theta, p)
+    @inbounds g[m+1]  = sum(p)
+end
+
+function jac_structure{V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{V,S,T})
+    n, k, m = size(e.mf)
+    rows = Array(Int64, e.gele)
+    cols = Array(Int64, e.gele)
     for j = 1:m+1, r = 1:n+k
         if !((r > n) && (j==m+1))
             @inbounds rows[r+(j-1)*(n+k)] = j
@@ -49,11 +51,29 @@ function MathProgSolverInterface.jac_structure(d::MDEstimator)
     rows, cols
 end
 
-function MathProgSolverInterface.hesslag_structure(d::MDEstimator)
-    n, m, k = size(d.momf)
-    rows = Array(Int64, d.hele)
-    cols = Array(Int64, d.hele)
-    for j = 1:n
+function eval_jac_g{V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{V,S,T}, J, u)
+    n, k, m = size(e.mf)
+    p  = u[1:n]
+    θ  = u[(n+1):(n+k)]
+    g  = e.mf.s(θ)
+    Dws = e.mf.Dws(θ, p)
+    for j=1:m+1, i=1:n+k
+        if(j<=m && i<=n)
+            @inbounds J[i+(j-1)*(n+k)] = g[i+(j-1)*n]
+        elseif (j<=m && i>n)
+            @inbounds J[i+(j-1)*(n+k)] = Dws[j, i-n]
+        elseif (j>m && i<=n)
+            @inbounds J[i+(j-1)*(n+k)] = 1.0
+        end
+    end
+end
+
+
+function hesslag_structure{V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{V, S, T})
+    n, k, m = size(e.mf)
+    rows = Array(Int64, e.hele)
+    cols = Array(Int64, e.hele)
+    @simd for j = 1:n
         @inbounds rows[j] = j
         @inbounds cols[j] = j
     end
@@ -77,26 +97,9 @@ function MathProgSolverInterface.hesslag_structure(d::MDEstimator)
     rows, cols
 end
 
-function MathProgSolverInterface.eval_jac_g(d::MDEstimator, J, u)
-    n, m, k = size(d.momf)
-    p  = u[1:n]
-    θ  = u[(n+1):(n+k)]
-    g  = d.momf.s(θ)
-    Dws = d.momf.Dws(θ, p)
 
-    for j=1:m+1, i=1:n+k
-        if(j<=m && i<=n)
-            @inbounds J[i+(j-1)*(n+k)] = g[i+(j-1)*n]
-        elseif (j<=m && i>n)
-            @inbounds J[i+(j-1)*(n+k)] = Dws[j, i-n]
-        elseif (j>m && i<=n)
-            @inbounds J[i+(j-1)*(n+k)] = 1.0
-        end
-    end
-end
-
-function MathProgSolverInterface.eval_hesslag(d::MDEstimator, H, u, σ, λ)
-    n, m, k = size(d.momf)
+function eval_hesslag(e::MDEstimator, H, u, σ, λ)
+    n, k, m = size(e.mf)
     p = u[1:n]
     θ = u[(n+1):(n+k)]
     if σ==0
@@ -105,9 +108,9 @@ function MathProgSolverInterface.eval_hesslag(d::MDEstimator, H, u, σ, λ)
         end
     else
       for j=1:n
-          @inbounds H[j] = σ*Divergences.hessian(d.div, u[j])
+          @inbounds H[j] = σ*Divergences.hessian(e.div, u[j])
       end
   end
-    @inbounds H[n+1:n*k+n] = transpose(d.momf.Dsl(θ, λ[1:m]))
-    @inbounds H[n*k+n+1:d.hele] = gettril(d.momf.Hwsl(θ, p, λ[1:m]))
+    @inbounds H[n+1:n*k+n] = transpose(e.mf.Dsl(θ, λ[1:m]))
+    @inbounds H[n*k+n+1:e.hele] = gettril(e.mf.Hwsl(θ, p, λ[1:m]))
 end
