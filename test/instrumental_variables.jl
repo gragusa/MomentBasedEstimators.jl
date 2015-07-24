@@ -36,30 +36,24 @@ estimate!(gmm2s)
 
 
 
-srand(1)
-using MomentBasedEstimators
-using ModelsGenerators
-y,x,z = ModelsGenerators.sim_iv_d01(n = 10000, CP = 2000)
-xb    = randn(10000,2)
-x     = [x xb]
-z     = [z xb]
+## srand(1)
+## using MomentBasedEstimators
+## using ModelsGenerators
+## y,x,z = ModelsGenerators.sim_iv_d01(n = 10000, CP = 2000)
+## xb    = randn(10000,2)
+## x     = [x xb]
+## z     = [z xb]
 
-f(theta) = z.*(y-x*theta);
+## f(theta) = z.*(y-x*theta);
 
-gmm = MomentBasedEstimators.GMMEstimator(f, [.1, 0, 0], initialW = z'z);
-md = MomentBasedEstimators.MDEstimator(f, [.1, 0, 0]);
+## gmm = MomentBasedEstimators.GMMEstimator(f, [.1, 0, 0], initialW = z'z);
+## md = MomentBasedEstimators.MDEstimator(f, [.1, 0, 0]);
 
-MomentBasedEstimators.initialize!(gmm);
-MomentBasedEstimators.initialize!(md);
+## MomentBasedEstimators.initialize!(gmm);
+## MomentBasedEstimators.initialize!(md);
 
-estimate!(gmm);
-estimate!(md);
-
-
-f(theta) = broadcast(*, z, map(Subtract(), y, x*theta)) 
-
-
-
+## estimate!(gmm);
+## estimate!(md);
 
 
 ## MomentBasedEstimators.setparLB!(md, coef(md))

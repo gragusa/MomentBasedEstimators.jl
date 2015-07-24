@@ -51,8 +51,10 @@ mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance) = vcov(
 
 initial_weighting{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.W[end]
 
-## shat(me::GMMEstimator, k::RobustVariance) = mfvcov(me, k)
-## optimal_W(me::GMMEstimator, k::RobustVariance) = pinv(full(shat(me, k)*nobs(me)))
+################################################################
+#### GMM vcov/stderr
+####
+################################################################
 
 StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(e, smoothing_kernel(e), iteration_manager(e))
 
@@ -76,9 +78,41 @@ function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::Robust
     (n.^2/(n-p))*A*B*A
 end
 
-function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::OneStepGMM)
+function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
     vcov(e, smoothing_kernel(e), mgr)
 end 
+
+function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance)
+    vcov(e, k, iteration_manager(e))
+end 
+
+function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T})
+    sqrt(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
+end
+
+function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
+    sqrt(diag(vcov(e, mgr)))
+end
+
+function StatsBase.stderr{T}(e::MomentBasedEstimator{T}, k::RobustVariance)
+    sqrt(diag(vcov(e, k)))
+end
+
+
+
+################################################################
+#### MD vcov/stderr
+####
+################################################################
+
+
+function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, k::RobustVariance)
+    sqrt(diag(vcov(e, robust, k)))
+end
+
+function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T})
+    sqrt(diag(vcov(e, smoothing_kernel(e))))
+end
 
 StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T})  = vcov(e, false, :Weighted)
 function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
@@ -96,25 +130,6 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bo
 end
 
 
-function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T})
-    sqrt(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
-end
-
-function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
-    sqrt(diag(vcov(e, mgr)))
-end
-
-function StatsBase.stderr{T}(e::MomentBasedEstimator{T}, k::RobustVariance)
-    sqrt(diag(vcov(e, k, iteration_manager(e))))
-end
-
-function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, k::RobustVariance)
-    sqrt(diag(vcov(e, robust, k)))
-end
-
-function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T})
-    sqrt(diag(vcov(e, smoothing_kernel(e))))
-end
 
 function J_test{T}(e::MomentBasedEstimator{T})
     g = mean(momentfunction(e), 1)
