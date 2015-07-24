@@ -7,6 +7,7 @@ nmom(e::GenericMomentBasedEstimator) = nmom(e.mf)
 nobs(e::GenericMomentBasedEstimator) = nobs(e.mf)
 Base.size(e::GenericMomentBasedEstimator) = (nobs(e), npar(e), nmom(e))
 
+objval(e::MomentBasedEstimator) = e.r.objval
 
 nobs(g::MomentBasedEstimator) = nobs(g.e)
 npar(g::MomentBasedEstimator) = npar(g.e)
@@ -21,8 +22,6 @@ Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
 ################################################################################
 ## Constructor with function and x0
 ################################################################################
-
-
 function GMMEstimator(f::Function, x0::Vector;
                       data = nothing,
                       initialW = nothing,
@@ -105,7 +104,6 @@ function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::Mom
 	g.status = :Initialized
 end
 
-
 getparLB(g::MomentBasedEstimator) = g.e.lb
 getparUB(g::MomentBasedEstimator) = g.e.ub
 
@@ -114,7 +112,6 @@ getmfUB(g::MomentBasedEstimator) = g.e.gub
 
 getwtsLB{V, T, S}(g::MomentBasedEstimator{MDEstimator{V, T, S}}) = g.e.wlb
 getwtsUB{V, T, S}(g::MomentBasedEstimator{MDEstimator{V, T, S}}) = g.e.wub
-
 
 ################################################################################
 ## Set constraint on parameters
@@ -147,44 +144,42 @@ function solver!(g::MomentBasedEstimator, s)
 	g.status == :Uninitialized || initialize!(g)
 end
 
-
 ################################################################################
 ## Update lb and up on g(θ) default: (0,...,0)
 ################################################################################
-function lower_bounds_mf!(g::MomentBasedEstimator{MDEstimator}, glb::Vector)
+function setmfLB!(g::MomentBasedEstimator{MDEstimator}, lb::Vector)
 	nmom(g) == length(lb) || error("Dimension error")
-	g.e.glb[:] = glb
+	g.e.glb[:] = lb
 end
 
-function upper_bounds_mf!(g::MomentBasedEstimator{MDEstimator}, gub::Vector)
-	nmom(g) == length(lb) || error("Dimension error")
-	g.e.glb[:] = glb
+function setmfUB!(g::MomentBasedEstimator{MDEstimator}, ub::Vector)
+	nmom(g) == length(ub) || error("Dimension error")
+	g.e.glb[:] = ub
 end
 
-function setbounds_mf!(g::MomentBasedEstimator{MDEstimator}, glb::Vector, gub::Vector)
-	lower_bounds_mf!(g, glb)
-	upper_bounds_mf!(g, gub)
-	g.status == :Uninitialized || initialize!(g)
-
+function setmfbounds!(g::MomentBasedEstimator{MDEstimator}, lb::Vector, ub::Vector)
+    setmfLB!(g, lb)
+    setmfUB!(g, ub)
+    g.status == :Uninitialized || initialize!(g)
 end
 
 
 ################################################################################
 ## Update initial lb and up on parameters(default -inf, +inf)
 ################################################################################
-function setparLB!(g::MomentBasedEstimator, lb::Vector)
+function setparLB!{T}(g::MomentBasedEstimator{T}, lb::Vector)
     npar(g) == length(lb) || error("Dimension error")
-    g.e.lb[:] = lb
+    copy!(g.e.lb, lb)
     g.status == :Uninitialized || initialize!(g)
 end
 
-function setparUB!!(g::MomentBasedEstimator, ub::Vector)
-    npar(g) == length(lb) || error("Dimension error")
-    g.e.ub[:] = ub
+function setparUB!{T}(g::MomentBasedEstimator{T}, ub::Vector)
+    npar(g) == length(ub) || error("Dimension error")
+    copy!(g.e.ub, ub)
     g.status == :Uninitialized || initialize!(g)
 end
 
-function setparbounds!(g::MomentBasedEstimator, lb::Vector, ub::Vector)
+function setparbounds!{T}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
 	setparLB!(g, lb)
 	setparUB!(g, ub)
 	g.status == :Uninitialized || initialize!(g)
@@ -193,21 +188,21 @@ end
 ################################################################################
 ## Update initial lb and up on mdweights (default 0, n)
 ################################################################################
-function setwtsLB!(g::MomentBasedEstimator{MDEstimator}, wlb::Vector)
-    nobs(g) == length(wlb) || error("Dimension error")
-    g.e.wlb[:] = wlb
+function setwtsLB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector)
+    nobs(g) == length(lb) || error("Dimension error")
+    copy!(g.e.wlb, lb)
     g.status == :Uninitialized || initialize!(g)
 end
 
-function setwtsUB!(g::MomentBasedEstimator{MDEstimator}, wub::Vector)
-    nobs(g) == length(wlb) || error("Dimension error")
-    g.e.wub[:] = wub
+function setwtsUB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, ub::Vector)
+    nobs(g) == length(ub) || error("Dimension error")
+    copy!(g.e.wub, ub)
     g.status == :Uninitialized || initialize!(g)
 end
 
-function setbounds_wgt!(g::MomentBasedEstimator{MDEstimator}, wlb::Vector, wub::Vector)
-    setwtsLB!(g, wlb)
-    setwtsUB!(g, wub)
+function setbounds_wgt!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
+    setwtsLB!(g, lb)
+    setwtsUB!(g, ub)
     g.status == :Uninitialized || initialize!(g)
 end
 
@@ -215,7 +210,7 @@ end
 ## Update initial weighting matrix (default is I(m))
 ################################################################################
 function setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2})
-	g.e.W = W
+    copy!(g.e.W , W)
 end
 
 ################################################################################
@@ -230,18 +225,17 @@ end
 ################################################################################
 ## estimate!
 ################################################################################
-
 function setx0!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, x0::Vector{Float64})
     ## For GMM x0 is the parameter
     length(x0) == npar(g) || throw(DimensionMismatch(""))
-    g.e.x0 = x0
+    copy!(g.e.x0, x0)
     MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, x0)
 end
 
 function setx0!{S <: MDEstimator}(m::MomentBasedEstimator{S}, x0::Vector{Float64})
     ## For GMM x0 is the parameter
     length(x0) == npar(m) || throw(DimensionMismatch(""))
-    m.e.x0 = x0
+    copy!(m.e.x0, x0)
     x00 = [m.m.inner.x[1:nobs(m)], x0]
     MathProgBase.MathProgSolverInterface.setwarmstart!(m.m, x00)
 end
@@ -266,7 +260,7 @@ function fill_in_results!{S <: MDEstimator}(g::MomentBasedEstimator{S})
     g.r.status = MathProgBase.MathProgSolverInterface.status(g.m)
     n, p, m = size(g)
     ss = MathProgBase.MathProgSolverInterface.getsolution(g.m)
-    g.r.coef   = ss[n+1:end]
+    copy!(g.r.coef, ss[n+1:end])
     #g.r.mdwts  = ss[1:n]
     g.r.objval = MathProgBase.MathProgSolverInterface.getobjval(g.m)
 end
@@ -274,8 +268,7 @@ end
 function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
     g.r.status = MathProgBase.MathProgSolverInterface.status(g.m)
     n, p, m = size(g)
-    g.r.coef   = MathProgBase.MathProgSolverInterface.getsolution(g.m)
-    #g.r.mdwts  = ss[1:n]
+    copy!(g.r.coef, MathProgBase.MathProgSolverInterface.getsolution(g.m))
     g.r.objval = MathProgBase.MathProgSolverInterface.getobjval(g.m)
 end
 
@@ -331,6 +324,15 @@ function optimal_W(mf::MomentFunction, theta::Vector, k::RobustVariance)
     W
 end
 
+function optimal_W(mf::Function, theta::Vector, k::RobustVariance)
+    h = mf(theta)
+    n = size(h, 1)
+    S = vcov(h, k) * n
+    W = pinv(S)
+    W
+end
 
-
+function optimal_W(e::MomentBasedEstimator, k::RobustVariance)
+    optimal_W(e.e.mf, coef(e), k)
+end
 

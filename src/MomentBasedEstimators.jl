@@ -38,12 +38,21 @@ include("md/mathprogbase.jl")
 # include("common/post_estimation.jl")
 
 include("common/util.jl")
-
+include("common/post_estimation.jl")
 
 export GMMEstimator,
-MDEstimator,
-Unconstrained, Constrained, TwoStepGMM,
-OneStepGMM, Weighted, Unweighted, MomentFunction, MomentBasedEstimator, estimate!
-
-
+       MDEstimator,
+       Unconstrained,
+       Constrained,
+       TwoStepGMM,
+       OneStepGMM,
+       optimal_W, 
+       Weighted,
+       Unweighted,
+       MomentFunction,
+       MomentBasedEstimator,
+       estimate!,
+       initialize!,
+       objval,
+       J_test       
 end

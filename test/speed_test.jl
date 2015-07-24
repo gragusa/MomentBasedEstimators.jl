@@ -52,3 +52,32 @@ ws() = p'v*l
 using Base.LinAlg.BLAS
 
 
+
+
+using FastAnonymous
+
+
+af = @anon theta->z.*(y-x*theta)
+
+af([.1,0,0])
+
+
+type dummy
+    a::DataType
+end
+
+uu = dummy(af)
+
+
+type dummy_
+    a::Function
+end 
+
+uuu = dummy_(f)
+
+fdummy() = for j = 1:1000 f([.1,0,0]) end
+fdummy_2() = for j = 1:1000 uu.a([.1,0,0]) end
+fdummy_() = for j = 1:1000 uuu.a([.1,0,0]) end
+@time fdummy()
+@time fdummy_2()
+@time fdummy_()
