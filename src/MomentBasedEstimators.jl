@@ -11,6 +11,7 @@ using Distributions
 using Divergences
 using KNITRO
 using Base.LinAlg.BLAS
+using Compat
 @reexport using CovarianceMatrices
 
 import MathProgBase: MathProgSolverInterface
