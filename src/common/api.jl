@@ -118,8 +118,8 @@ end
 function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{V, S, T}})
 	n, p, m = size(g)
 	ξ₀ = startingval(g)
-	g.e.gele = int(p)
-	g.e.hele = int(2*p)
+	g.e.gele = @compat Int(p)
+	g.e.hele = @compat Int(2*p)
 	g_L = Float64[]
 	g_U = Float64[]
 	u_L = getparLB(g)
