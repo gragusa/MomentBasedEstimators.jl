@@ -22,6 +22,31 @@ Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
 ################################################################################
 ## Constructor with function and x0
 ################################################################################
+function GMMEstimator(mf::MomentFunction, x0::Vector;
+                      data = nothing,
+                      initialW = nothing,
+                      wts = nothing,
+                      mgr::IterationManager = TwoStepGMM(),
+                      dtype::Symbol = :dual)
+    
+    w = wts == nothing ? Unweighted() : Weighted(float(wts))    
+    g0  = mf.s(x0); n, m = size(g0); p = length(x0)
+
+    ## Bounds
+    bt  = [Inf for j=1:p]
+    nf  = Float64[]
+    ni  = 0::Int64
+    ## Weighting matrix
+    initialW  = initialW == nothing ? eye(Float64, m) : initialW
+    _W   = setW0(mgr, m); _W[1][:,:] = initialW
+    ## Moment function
+    ## GMMEstimator
+    e   = GMMEstimator(mf, Unconstrained(), x0, -bt, +bt, nf, nf,
+                       mgr, IterationState([1], [10.0], x0), _W, w, ni, ni)
+    ## MomentBasedEstimator
+    g   = MomentBasedEstimator(e)
+end
+
 function GMMEstimator(f::Function, x0::Vector;
                       data = nothing,
                       initialW = nothing,
@@ -140,8 +165,9 @@ end
 ## Update solver
 ################################################################################
 function solver!(g::MomentBasedEstimator, s)
-	g.s = s
-	g.status == :Uninitialized || initialize!(g)
+    g.s = s
+    g.m = MathProgBase.MathProgSolverInterface.model(s)
+    initialize!(g)
 end
 
 ################################################################################
