@@ -186,7 +186,7 @@ end
 function setmfbounds!(g::MomentBasedEstimator{MDEstimator}, lb::Vector, ub::Vector)
     setmfLB!(g, lb)
     setmfUB!(g, ub)
-    g.status == :Uninitialized || initialize!(g)
+    
 end
 
 
@@ -196,19 +196,16 @@ end
 function setparLB!{T}(g::MomentBasedEstimator{T}, lb::Vector)
     npar(g) == length(lb) || error("Dimension error")
     copy!(g.e.lb, lb)
-    g.status == :Uninitialized || initialize!(g)
 end
 
 function setparUB!{T}(g::MomentBasedEstimator{T}, ub::Vector)
     npar(g) == length(ub) || error("Dimension error")
     copy!(g.e.ub, ub)
-    g.status == :Uninitialized || initialize!(g)
 end
 
 function setparbounds!{T}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
 	setparLB!(g, lb)
 	setparUB!(g, ub)
-	g.status == :Uninitialized || initialize!(g)
 end
 
 ################################################################################
@@ -217,19 +214,19 @@ end
 function setwtsLB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector)
     nobs(g) == length(lb) || error("Dimension error")
     copy!(g.e.wlb, lb)
-    g.status == :Uninitialized || initialize!(g)
+    
 end
 
 function setwtsUB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, ub::Vector)
     nobs(g) == length(ub) || error("Dimension error")
     copy!(g.e.wub, ub)
-    g.status == :Uninitialized || initialize!(g)
+    
 end
 
 function setbounds_wgt!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
     setwtsLB!(g, lb)
     setwtsUB!(g, ub)
-    g.status == :Uninitialized || initialize!(g)
+    
 end
 
 ################################################################################
@@ -243,8 +240,7 @@ end
 ## Iteration
 ################################################################################
 function set_iteration_manager!(g::MomentBasedEstimator{GMMEstimator}, mgr::IterationManager)
-    g.e.mgr = mgr
-    g.status == :Uninitialized || initialize!(g)
+    g.e.mgr = mgr    
 end
 
 
@@ -266,18 +262,13 @@ function setx0!{S <: MDEstimator}(m::MomentBasedEstimator{S}, x0::Vector{Float64
     MathProgBase.MathProgSolverInterface.setwarmstart!(m.m, x00)
 end
 
-estimate!(g::MomentBasedEstimator) = estimate!(g, startingval(g))
-
-
-function estimate!(g::MomentBasedEstimator, x0::Vector)
+function estimate!(g::MomentBasedEstimator)
     ## There are three possible states of g.status
     ## :Uninitialized
     ## :Initialized
     ## :Solved(Success|Failure)
-    setx0!(g, x0)
-    g.status == :Uninitialized || initialize!(g)
-    ## g.status == :Solved        || resolve!(g, g.m)
-    g.status == :Initialized   || optimize!(g.m)
+    initialize!(g)
+    optimize!(g.m)
     fill_in_results!(g)
     g
 end
