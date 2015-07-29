@@ -28,6 +28,7 @@ function MomentFunction(g::Function, dtype::Symbol;
                                  nobs, nmom, npar)..., kernel, nobs, npar, nmom)
 end
 
+
 function get_mom_deriv(g::Function, dtype::Symbol, k::SmoothingKernel, nobs, nmom, npar)
     ## Smoothed moment condition
     s(θ::Vector)  = smooth(g(θ), k)
@@ -167,6 +168,12 @@ function MomentBasedEstimator(e::GenericMomentBasedEstimator)
         :Uninitialized)
 end
 
-setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m,m) for i=1:2]
-setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m,m) for i=1:1]
-setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m,m) for i=1:mgr.maxiter+1]
+setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
+setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:1]
+setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m, m) for i=1:mgr.maxiter+1]
+
+
+##
+## Set options of the solver
+##
+
