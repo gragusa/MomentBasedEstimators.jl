@@ -268,7 +268,7 @@ function estimate!(g::MomentBasedEstimator)
     ## :Initialized
     ## :Solved(Success|Failure)
     initialize!(g)
-    optimize!(g.m)
+    solve!(g, g.m)
     fill_in_results!(g)
     g
 end
@@ -289,14 +289,14 @@ function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
     g.r.objval = MathProgBase.MathProgSolverInterface.getobjval(g.m)
 end
 
-function resolve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
+function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
     KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
     KNITRO.solveProblem(g.m.inner)
 end
 
-resolve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.MathProgSolverInterface.optimize!(g.m)
+solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.MathProgSolverInterface.optimize!(g.m)
 
-function resolve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel)
+function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel)
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
