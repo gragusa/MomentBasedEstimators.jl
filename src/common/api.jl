@@ -276,8 +276,8 @@ function estimate!(g::MomentBasedEstimator, x0::Vector)
     ## :Solved(Success|Failure)
     setx0!(g, x0)
     g.status == :Uninitialized || initialize!(g)
-    g.status == :Solved        || resolve!(g, g.m)
-    g.status == :Initialized   || optimize!(m)
+    ## g.status == :Solved        || resolve!(g, g.m)
+    g.status == :Initialized   || optimize!(g.m)
     fill_in_results!(g)
     g
 end
