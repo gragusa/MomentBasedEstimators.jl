@@ -19,5 +19,4 @@ two_step = GMMEstimator(g_gamma, [2.40, 0.08], initialW = eye(4),  mgr=TwoStepGM
 MomentBasedEstimators.setparLB!(two_step, [0.0, 0.0])
 MomentBasedEstimators.setparUB!(two_step, [+Inf, +Inf])
 
-initialize!(two_step)
 estimate!(two_step)
