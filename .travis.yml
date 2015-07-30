@@ -1,22 +1,23 @@
 language: cpp
 compiler:
-  - clang
+    - gcc
 notifications:
-  email: false
+    email: false
 env:
-  matrix:
-  - release
-  - nightly
+    - JULIAVERSION="juliareleases" 
+    - JULIAVERSION="julianightlies"
 before_install:
-  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-  - sudo add-apt-repository ppa:staticfloat/${JULIAVERSION} -y
-  - sudo apt-get update -qq -y
-  - sudo apt-get install libpcre3-dev julia -y
-  - sudo apt-get install build-essential
-  - sudo apt-get install gfortran
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+    - sudo add-apt-repository ppa:staticfloat/julia-deps -y
+    - sudo add-apt-repository ppa:staticfloat/${JULIAVERSION} -y
+    - sudo apt-get update -qq -y
+    - sudo apt-get install gfortran libpcre3-dev julia -y
+    - git config --global user.name "Travis User"
+    - git config --global user.email "travis@example.net"
+    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("MomentBasedEstimators"); Pkg.test("MomentBasedEstimators"; coverage=true)'
+    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  		- julia -e 'Pkg.clone("https://github.com/gragusa/Divergences.jl.git"); Pkg.clone("https://github.com/gragusa/ModelsGenerators.git")'
+				- julia -e 'Pkg.clone(pwd())'
+  		- julia --check-bounds=yes -e 'Pkg.build("MomentBasedEstimators"); Pkg.test("MomentBasedEstimators"; coverage=true)'
 after_success:
   - julia -e 'cd(Pkg.dir("MomentBasedEstimators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder()); Codecov.submit(process_folder())'
