@@ -164,10 +164,9 @@ end
 ################################################################################
 ## Update solver
 ################################################################################
-function solver!(g::MomentBasedEstimator, s)
+function solver!(g::MomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     g.s = s
-    g.m = MathProgBase.MathProgSolverInterface.model(s)
-    initialize!(g)
+    g.m = deepcopy(MathProgBase.MathProgSolverInterface.model(s))
 end
 
 ################################################################################
@@ -296,7 +295,7 @@ end
 
 solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.MathProgSolverInterface.optimize!(g.m)
 
-function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel)
+function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractMathProgModel)
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
