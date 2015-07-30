@@ -5,7 +5,8 @@ notifications:
   email: false
 env:
   matrix:
-    - JULIAVERSION="juliareleases"
+  - release
+  - nightly
 before_install:
   - sudo add-apt-repository ppa:staticfloat/julia-deps -y
   - sudo add-apt-repository ppa:staticfloat/${JULIAVERSION} -y
