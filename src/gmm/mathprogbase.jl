@@ -32,9 +32,9 @@ function eval_grad_f(e::GMMEstimator, grad_f, theta)
     gemm!('T', 'N', 2.0, e.mf.Dsn(theta), e.W[idx]*e.mf.sn(theta), 0.0, grad_f)
 end
 
-jac_structure{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}) = [],[]
+jac_structure{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}) = Int[],Int[]
 eval_jac_g{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}, J, x) = nothing
 
-hesslag_structure(d::GMMEstimator) = [],[]
+hesslag_structure(d::GMMEstimator) = Int[], Int[]
 eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing
 
