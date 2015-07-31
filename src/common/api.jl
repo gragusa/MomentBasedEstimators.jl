@@ -4,17 +4,17 @@ startingval(g::MomentBasedEstimator) = startingval(g.e)
 
 npar(e::GenericMomentBasedEstimator) = npar(e.mf)
 nmom(e::GenericMomentBasedEstimator) = nmom(e.mf)
-nobs(e::GenericMomentBasedEstimator) = nobs(e.mf)
+StatsBase.nobs(e::GenericMomentBasedEstimator) = nobs(e.mf)
 Base.size(e::GenericMomentBasedEstimator) = (nobs(e), npar(e), nmom(e))
 
 objval(e::MomentBasedEstimator) = e.r.objval
 
-nobs(g::MomentBasedEstimator) = nobs(g.e)
+StatsBase.nobs(g::MomentBasedEstimator) = nobs(g.e)
 npar(g::MomentBasedEstimator) = npar(g.e)
 nmom(g::MomentBasedEstimator) = nmom(g.e)
 Base.size(g::MomentBasedEstimator) = (nobs(g), npar(g), nmom(g))
 
-nobs(m::MomentFunction) = m.nobs
+StatsBase.nobs(m::MomentFunction) = m.nobs
 npar(m::MomentFunction) = m.npar
 nmom(m::MomentFunction) = m.nmom
 Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
@@ -28,8 +28,8 @@ function GMMEstimator(mf::MomentFunction, x0::Vector;
                       wts = nothing,
                       mgr::IterationManager = TwoStepGMM(),
                       dtype::Symbol = :dual)
-    
-    w = wts == nothing ? Unweighted() : Weighted(float(wts))    
+
+    w = wts == nothing ? Unweighted() : Weighted(float(wts))
     g0  = mf.s(x0); n, m = size(g0); p = length(x0)
 
     ## Bounds
@@ -53,7 +53,7 @@ function GMMEstimator(f::Function, x0::Vector;
                       wts = nothing,
                       mgr::IterationManager = TwoStepGMM(),
                       dtype::Symbol = :dual)
-    
+
     w = wts == nothing ? Unweighted() : Weighted(float(wts))
     _mf(x0) = data == nothing ? f(x0) : f(x0, data)
     g0  = _mf(x0); n, m = size(g0); p = length(x0)
@@ -117,14 +117,14 @@ end
 
 function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{V, S, T}})
 	n, p, m = size(g)
-	ξ₀ = startingval(g)
+	ξ₀ = MomentBasedEstimators.startingval(g)
 	g.e.gele = @compat Int(p)
 	g.e.hele = @compat Int(2*p)
 	g_L = Float64[]
 	g_U = Float64[]
-	u_L = getparLB(g)
-	u_U = getparUB(g)
-	loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
+	u_L = MomentBasedEstimators.getparLB(g)
+	u_U = MomentBasedEstimators.getparUB(g)
+    loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
 	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
 	g.status = :Initialized
 end
@@ -185,7 +185,7 @@ end
 function setmfbounds!(g::MomentBasedEstimator{MDEstimator}, lb::Vector, ub::Vector)
     setmfLB!(g, lb)
     setmfUB!(g, ub)
-    
+
 end
 
 
@@ -213,19 +213,18 @@ end
 function setwtsLB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector)
     nobs(g) == length(lb) || error("Dimension error")
     copy!(g.e.wlb, lb)
-    
+
 end
 
 function setwtsUB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, ub::Vector)
     nobs(g) == length(ub) || error("Dimension error")
     copy!(g.e.wub, ub)
-    
+
 end
 
-function setbounds_wgt!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
+function setwtsbounds!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
     setwtsLB!(g, lb)
     setwtsUB!(g, ub)
-    
 end
 
 ################################################################################
@@ -239,7 +238,7 @@ end
 ## Iteration
 ################################################################################
 function set_iteration_manager!(g::MomentBasedEstimator{GMMEstimator}, mgr::IterationManager)
-    g.e.mgr = mgr    
+    g.e.mgr = mgr
 end
 
 
@@ -307,7 +306,7 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
     ## end
         if g.e.ist.n[1]>1
             g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k)
-        end 
+        end
         MathProgSolverInterface.optimize!(g.m)
         # update theta and W
         theta = MathProgSolverInterface.getsolution(g.m)
@@ -317,8 +316,8 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
         ## g.e.ist.change[:] = maxabs(g.e.ist.prev - theta)
         ## g.e.ist.prev[:] = theta
         MathProgSolverInterface.setwarmstart!(g.m, theta)
-        # update iteration state        
-    end    
+        # update iteration state
+    end
     fill_in_results!(g)
     g
 end
@@ -351,4 +350,3 @@ end
 function optimal_W(e::MomentBasedEstimator, k::RobustVariance)
     optimal_W(e.e.mf, coef(e), k)
 end
-
