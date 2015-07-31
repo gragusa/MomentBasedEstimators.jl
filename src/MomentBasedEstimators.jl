@@ -8,7 +8,7 @@ using Ipopt
 using StatsBase
 using Reexport
 using Distributions
-using Divergences
+@reexport using Divergences
 using KNITRO
 using Base.LinAlg.BLAS
 using Compat
@@ -47,13 +47,23 @@ export GMMEstimator,
        Constrained,
        TwoStepGMM,
        OneStepGMM,
-       optimal_W, 
+       optimal_W,
        Weighted,
        Unweighted,
        MomentFunction,
        MomentBasedEstimator,
        estimate!,
        initialize!,
+       solver!,
+       setparLB!,
+       setparUB!,
+       setparbounds!,
+       setwtsLB!,
+       setwtsUB!,
+       setwtsbounds!,
+       setmfLB!,
+       setmfUB!,
+       setmfbounds!,
        objval,
-       J_test       
+       J_test
 end
