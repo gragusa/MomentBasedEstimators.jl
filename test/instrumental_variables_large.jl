@@ -37,8 +37,8 @@ catch
 end
 
 if HAS_KNITRO
-    @fact coef(cue_knitro)
-
+    @fact coef(cue_knitro) => roughly(coef(cue_base))
+end
 
 
 
