@@ -108,8 +108,8 @@ function initialize!{V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBas
 	g.e.hele = int(n*p + n + (p+1)*p/2)
 	g_L = getmfLB(g)
 	g_U = getmfUB(g)
-	u_L = [getwtsLB(g), getparLB(g)]
-	u_U = [getwtsUB(g), getparUB(g)]
+	u_L = [getwtsLB(g); getparLB(g)]
+	u_U = [getwtsUB(g); getparUB(g)]
 	loadnonlinearproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
 	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
 	g.status = :Initialized
