@@ -66,6 +66,9 @@ facts("Testing basic interface") do
         ov = 1.191
         @fact objval(gmm2s) => roughly(ov, atol = 0.02)
     end
+    context("Instrumental variables large --- verified by asymptotics") do
+        include("instrumental_variables_large.jl")
+    end
     ## context("Instrumental variables large --- verified by asymptotics") do
     ##     Vgmm = vcov(gmm)
     ##     Vmd  = vcov(md)
