@@ -129,6 +129,23 @@ function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::Mom
 	g.status = :Initialized
 end
 
+function initialize!{V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{V, S, T}})
+	n, p, m = size(g)
+	ξ₀ = MomentBasedEstimators.startingval(g)
+	g.e.gele = @compat Int(g.e.c.nc*p)
+	g.e.hele = @compat Int(0)
+	g_L = g.e.c.hlb
+	g_U = g.e.c.hub
+	u_L = MomentBasedEstimators.getparLB(g)
+	u_U = MomentBasedEstimators.getparUB(g)
+    loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
+	g.status = :Initialized
+end
+
+
+
+
 getparLB(g::MomentBasedEstimator) = g.e.lb
 getparUB(g::MomentBasedEstimator) = g.e.ub
 
@@ -157,7 +174,21 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
     lh(x, λ) = λ'*h
     Hh = args_typed_fad_hessian(lh, Float64)
     r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array(Float64, p), Array(Float64, p, p))
-    ce = deepcopy(g.e); ce.c  = Constrained(h, Dh, Hh, chk...)
+
+    ce = GMMEstimator(g.e.mf,
+                      Constrained(h, Dh, Hh, chk...),
+                      g.e.x0,
+                      g.e.lb,
+                      g.e.ub,
+                      g.e.glb,
+                      g.e.gub,
+                      g.e.mgr,
+                      g.e.ist,
+                      g.e.W,
+                      g.e.wtg,
+                      g.e.gele,
+                      g.e.hele)
+    
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end
 
