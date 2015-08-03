@@ -319,8 +319,9 @@ function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
 end
 
 function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
-    KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
-    KNITRO.solveProblem(g.m.inner)
+    # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
+    # KNITRO.solveProblem(g.m.inner)
+    optimize!(g.m)
 end
 
 solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.MathProgSolverInterface.optimize!(g.m)
