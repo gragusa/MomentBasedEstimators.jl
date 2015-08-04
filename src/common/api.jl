@@ -347,7 +347,9 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
         ## g.e.ist.n[:] += 1
         ## g.e.ist.change[:] = maxabs(g.e.ist.prev - theta)
         ## g.e.ist.prev[:] = theta
-        MathProgSolverInterface.setwarmstart!(g.m, theta)
+        if !(finished(g.e.mgr, g.e.ist))
+            MathProgSolverInterface.setwarmstart!(g.m, theta)
+        end
         # update iteration state
     end
     fill_in_results!(g)
