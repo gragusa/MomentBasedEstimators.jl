@@ -2,124 +2,68 @@ module MomentBasedEstimators
 
 using PDMats
 using ForwardDiff
+using DualNumbers
 using MathProgBase
 using Ipopt
 using StatsBase
 using Reexport
 using Distributions
+@reexport using Divergences
+using KNITRO
+using Base.LinAlg.BLAS
+using Compat
 @reexport using CovarianceMatrices
-import MathProgBase.MathProgSolverInterface
+
+import MathProgBase: MathProgSolverInterface
+import MathProgBase.MathProgSolverInterface: eval_f, eval_grad_f, eval_g, eval_jac_g, eval_hesslag
+
+import MathProgBase.MathProgSolverInterface: jac_structure, hesslag_structure
+import MathProgBase.MathProgSolverInterface: loadnonlinearproblem!
 import CovarianceMatrices.RobustVariance
 
-export gmm, status, coef, objval, momentfunction, jacobian, mfvcov, vcov,
-       optimal_W, TwoStepGMM, OneStepGMM, IterativeGMM
+const DEFAULT_DIVERGENCE = KullbackLeibler()
 
+## Common
+include("md/smoothing.jl")
+include("common/derivatives.jl")
+## GMM
+include("gmm/iteration_managers.jl")
 
-# ------------------ #
-# Iteration managers #
-# ------------------ #
+## MD
+include("common/interface.jl")
+include("common/api.jl")
 
-abstract IterationManager
+include("gmm/mathprogbase.jl")
+include("md/mathprogbase.jl")
+# include("common/display.jl")
+# include("common/post_estimation.jl")
 
-immutable OneStepGMM <: IterationManager
-    k::RobustVariance
-end
+include("common/util.jl")
+include("common/post_estimation.jl")
 
-immutable TwoStepGMM <: IterationManager
-    k::RobustVariance
-end
-
-immutable IterativeGMM <: IterationManager
-    k::RobustVariance
-    tol::Float64
-    maxiter::Int
-end
-
-# kwarg constructors with default values
-OneStepGMM(;k::RobustVariance=HC0()) = OneStepGMM(k)
-
-TwoStepGMM(;k::RobustVariance=HC0()) = TwoStepGMM(k)
-
-function IterativeGMM(;k::RobustVariance=HC0(), tol::Float64=1e-12,
-                       maxiter::Int=500)
-    IterativeGMM(k, tol, maxiter)
-end
-
-type IterationState
-    n::Int
-    change::Float64
-    prev::Array  # previous value
-end
-
-finished(::OneStepGMM, ist::IterationState) = ist.n >= 1
-finished(::TwoStepGMM, ist::IterationState) = ist.n >= 2
-function finished(mgr::IterativeGMM, ist::IterationState)
-    ist.n > mgr.maxiter || abs(ist.change) <= mgr.tol
-end
-
-# -------------- #
-# Main GMM Types #
-# -------------- #
-
-type GMMNLPE <: MathProgSolverInterface.AbstractNLPEvaluator
-    mf::Function
-    smf::Function
-    Dmf::Function
-    mgr::IterationManager
-    W::Array{Float64, 2}
-end
-
-abstract MomentBasedEstimatorResult
-
-type GMMResult <: MomentBasedEstimatorResult
-    status::Symbol
-    objval::Real
-    coef::Array{Float64, 1}
-    nmom::Integer
-    npar::Integer
-    nobs::Integer
-end
-
-abstract MomentBasedEstimator
-
-type GMMEstimator <: MomentBasedEstimator
-    e::GMMNLPE
-    r::GMMResult
-end
-
-# --------------- #
-# Display methods #
-# --------------- #
-
-function show_extra(me::GMMEstimator)
-    j, p = J_test(me, me.e.mgr.k)
-    "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
-end
-
-# default to nothing
-show_extra(me::MomentBasedEstimator) = ""
-
-function Base.writemime{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
-    # get coef table and j-test
-    ct = coeftable(me, me.e.mgr.k)
-
-    # show info for our model
-    println(io, "$(T): $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
-
-    # Show extra information for this type
-    println(io, show_extra(me))
-
-    # print coefficient table
-    println(io, "Coefficients:\n")
-
-    # then show coeftable
-    show(io, ct)
-end
-
-include("util.jl")
-include("gmm_mathprogbase.jl")
-include("api.jl")
-include("post_estimation.jl")
-
-
+export GMMEstimator,
+       MDEstimator,
+       Unconstrained,
+       Constrained,
+       TwoStepGMM,
+       OneStepGMM,
+       optimal_W,
+       Weighted,
+       Unweighted,
+       MomentFunction,
+       MomentBasedEstimator,
+       estimate!,
+       initialize!,
+       solver!,
+       setparLB!,
+       setparUB!,
+       setparbounds!,
+       setwtsLB!,
+       setwtsUB!,
+       setwtsbounds!,
+       setmfLB!,
+       setmfUB!,
+       setmfbounds!,
+       objval,
+       J_test
 end
