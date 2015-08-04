@@ -103,7 +103,7 @@ end
 
 function initialize!{V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{V, S, T}})
 	n, p, m = size(g)
-	ξ₀ = [ones(n), startingval(g)]
+	ξ₀ = [ones(n); startingval(g)]
 	g.e.gele = int((n+p)*(m+1)-p)
 	g.e.hele = int(n*p + n + (p+1)*p/2)
 	g_L = getmfLB(g)
