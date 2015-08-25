@@ -83,8 +83,8 @@ function MDEstimator(f::Function, x0::Vector; data = nothing, wts = nothing,
     bt  = [Inf for j=1:p]
     wlb = zeros(Float64, n)
     wub = ones(Float64,  n)*n
-    glb = [zeros(m), n];
-    gub = [zeros(m), n];
+    glb = [zeros(m); n];
+    gub = [zeros(m); n];
     ni  = 0::Int64
     mf  = MomentFunction(_mf, dtype, kernel = kernel, nobs = n, npar = p, nmom = m)
     e   = MDEstimator(mf, Unconstrained(), x0, -bt, bt, glb, gub, wlb, wub,
@@ -104,8 +104,8 @@ end
 function initialize!{V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{V, S, T}})
 	n, p, m = size(g)
 	ξ₀ = [ones(n); startingval(g)]
-	g.e.gele = int((n+p)*(m+1)-p)
-	g.e.hele = int(n*p + n + (p+1)*p/2)
+	g.e.gele = Int((n+p)*(m+1)-p)
+	g.e.hele = Int(n*p + n + (p+1)*p/2)
 	g_L = getmfLB(g)
 	g_U = getmfUB(g)
 	u_L = [getwtsLB(g); getparLB(g)]
