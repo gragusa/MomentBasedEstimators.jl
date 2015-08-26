@@ -4,13 +4,13 @@ using FactCheck
 facts("Testing basic interface") do
     context("Test from vignette for the R gmm package.") do
         include("normal_dist.jl")
-        cft = [3.84376, 2.06728]
+        cft = [3.843, 2.067]
         cfe = coef(step_1)
         sdt = [0.06527666675890574,0.04672629429325811]
         sde = stderr(step_1, TwoStepGMM())
         for j = 1:2
-            @fact cfe[j] => roughly(cft[j])
-            @fact sde[j] => roughly(sdt[j])
+            @fact cfe[j] => roughly(cft[j], 0.01)
+            @fact sde[j] => roughly(sdt[j], 0.01)
         end
         Je, pe = MomentBasedEstimators.J_test(step_iid_mgr)
         ## This is the objective value, which is the J-test
