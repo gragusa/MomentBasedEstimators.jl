@@ -12,7 +12,6 @@ h(theta) = z.*(y-x*theta);
 gmm_base = GMMEstimator(h, [.0])
 estimate!(gmm_base)
 
-
 kl_base = MDEstimator(h, [.0])
 estimate!(kl_base)
 
