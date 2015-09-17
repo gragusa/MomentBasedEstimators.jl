@@ -2,7 +2,6 @@ module MomentBasedEstimators
 
 using PDMats
 using ForwardDiff
-using DualNumbers
 using MathProgBase
 using Ipopt
 using StatsBase
