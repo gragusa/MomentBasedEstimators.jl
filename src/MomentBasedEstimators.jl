@@ -1,6 +1,5 @@
 module MomentBasedEstimators
 
-using PDMats
 using ForwardDiff
 using MathProgBase
 using Ipopt
