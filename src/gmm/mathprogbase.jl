@@ -14,28 +14,37 @@ MathProgSolverInterface.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hes
 
 function MathProgSolverInterface.eval_f(e::GMMEstimator, theta)
     idx = e.ist.n[1]   
-    gn = e.mf.sn(theta)
-    ## TODO: Rewrite this in a more human form
-    (gn'e.W[idx]*gn)[1]
+    gn = vec(sum(e.mf.s(theta), 1))
+    Base.dot(gn, e.W[idx]*gn)
 end
 
-eval_g{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}, g, theta) = nothing
+eval_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, g, theta) = nothing
 
-function eval_g{V, T<:Constrained, S}(e::GMMEstimator{V, T, S}, g, theta)
+function eval_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, g, theta)
     g[:] = e.c.h(theta)
 end
 
-function eval_grad_f(e::GMMEstimator, grad_f, theta)
-    ##grad_f[:] = 2*d.Dsn(theta)'*(d.W*d.sn(theta))
+function eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
     idx = e.ist.n[1]
-    gemm!('T', 'N', 2.0, e.mf.Dsn(theta), e.W[idx]*e.mf.sn(theta), 0.0, grad_f)
+    sn(θ) = vec(sum(e.mf.s(θ), 1))
+    gemm!('T', 'N', 2.0,
+          ForwardDiff.jacobian(sn, θ, chunk_size = length(θ)),
+          e.W[idx]*sn(θ), 0.0, grad_f)
 end
 
-jac_structure{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}) = Int[],Int[]
+function eval_grad_f{M <: AnaMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
+    ##grad_f[:] = 2*d.Dsn(theta)'*(d.W*d.sn(theta))
+    idx = e.ist.n[1]
+    sn = vec(sum(e.mf.s(θ), 1))
+    gemm!('T', 'N', 2.0,
+          e.mf.Dsn(θ),
+          e.W[idx]*sn, 0.0, grad_f)
+end
 
-eval_jac_g{V, T<:Unconstrained, S}(e::GMMEstimator{V, T, S}, J, x) = nothing
+jac_structure{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}) = Int[],Int[]
+eval_jac_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, J, x) = nothing
 
-function jac_structure{V, T<:Constrained, S}(e::GMMEstimator{V, T, S})
+function jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S})
     nc = e.c.nc            ## Number of constraints
     n, k, m = size(e.mf)
     ## The jacobian is a nc x k
@@ -48,13 +57,10 @@ function jac_structure{V, T<:Constrained, S}(e::GMMEstimator{V, T, S})
     rows, cols
 end 
 
-function eval_jac_g{V, T<:Constrained, S}(e::GMMEstimator{V, T, S}, J, theta)
-    J[:] = vec(e.c.Dh(theta)')
+function eval_jac_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, J, θ)
+    h(θ) = e.c.h(θ)
+    J[:] = vec(ForwardDiff.hessian(h, θ, chunk_size = length(θ))')
 end
-    
-    
-
 
 hesslag_structure(d::GMMEstimator) = Int[], Int[]
 eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing
-
