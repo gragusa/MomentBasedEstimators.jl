@@ -1,8 +1,6 @@
 module MomentBasedEstimators
 
-using PDMats
 using ForwardDiff
-using DualNumbers
 using MathProgBase
 using Ipopt
 using StatsBase
@@ -25,7 +23,7 @@ const DEFAULT_DIVERGENCE = KullbackLeibler()
 
 ## Common
 include("md/smoothing.jl")
-include("common/derivatives.jl")
+#include("common/derivatives.jl")
 ## GMM
 include("gmm/iteration_managers.jl")
 
@@ -52,6 +50,7 @@ export GMMEstimator,
        Unweighted,
        MomentFunction,
        MomentBasedEstimator,
+       status,
        estimate!,
        initialize!,
        solver!,

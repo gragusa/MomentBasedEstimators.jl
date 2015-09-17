@@ -2,94 +2,110 @@
 startingval(e::GenericMomentBasedEstimator) = e.x0
 startingval(g::MomentBasedEstimator) = startingval(g.e)
 
-npar(e::GenericMomentBasedEstimator) = npar(e.mf)
-nmom(e::GenericMomentBasedEstimator) = nmom(e.mf)
-StatsBase.nobs(e::GenericMomentBasedEstimator) = nobs(e.mf)
+npar(e::GenericMomentBasedEstimator) = e.npar
+nmom(e::GenericMomentBasedEstimator) = e.nmom
+StatsBase.nobs(e::GenericMomentBasedEstimator) = e.nobs
 Base.size(e::GenericMomentBasedEstimator) = (nobs(e), npar(e), nmom(e))
-
-objval(e::MomentBasedEstimator) = e.r.objval
 
 StatsBase.nobs(g::MomentBasedEstimator) = nobs(g.e)
 npar(g::MomentBasedEstimator) = npar(g.e)
 nmom(g::MomentBasedEstimator) = nmom(g.e)
-Base.size(g::MomentBasedEstimator) = (nobs(g), npar(g), nmom(g))
+Base.size(g::MomentBasedEstimator) = (nobs(g.e), npar(g.e), nmom(g.e))
 
-StatsBase.nobs(m::MomentFunction) = m.nobs
-npar(m::MomentFunction) = m.npar
-nmom(m::MomentFunction) = m.nmom
-Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
+
+objval(e::MomentBasedEstimator) = e.r.objval
+
+
+# StatsBase.nobs(m::MomentFunction) = m.nobs
+# npar(m::MomentFunction) = m.npar
+# nmom(m::MomentFunction) = m.nmom
+# Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
 
 ################################################################################
 ## Constructor with function and x0
 ################################################################################
-function GMMEstimator(mf::MomentFunction, x0::Vector;
+function GMMEstimator(f::Function, ϑ::Vector;
+                      grad = nothing,
                       data = nothing,
                       initialW = nothing,
                       wts = nothing,
-                      mgr::IterationManager = TwoStepGMM(),
-                      dtype::Symbol = :dual)
-
+                      mgr::IterationManager = TwoStepGMM())
+    ## Set Moment Function
+    g(ϑ) = data == nothing ? f(ϑ) : f(ϑ, data)
+    ## Evaluate Moment Function
+    g₀ = g(ϑ)
+    n, m, p = (size(g₀)..., length(ϑ))
+    ## Initial Weighting Matrix
+    W₀ = initialW == nothing ? eye(Float64, m) : initialW
+    W  = setW0(mgr, m);
+    W[1] = W₀
+    ## Weighting
     w = wts == nothing ? Unweighted() : Weighted(float(wts))
-    g0  = mf.s(x0); n, m = size(g0); p = length(x0)
-
-    ## Bounds
-    bt  = [Inf for j=1:p]
+    ## Set Default Bounds
+    lb  = [-Inf for j=1:p]
+    ub  = [+Inf for j=1:p]
     nf  = Float64[]
     ni  = 0::Int64
-    ## Weighting matrix
-    initialW  = initialW == nothing ? eye(Float64, m) : initialW
-    _W   = setW0(mgr, m); _W[1][:,:] = initialW
-    ## Moment function
-    ## GMMEstimator
-    e   = GMMEstimator(mf, Unconstrained(), x0, -bt, +bt, nf, nf,
-                       mgr, IterationState([1], [10.0], x0), _W, w, ni, ni)
-    ## MomentBasedEstimator
-    g   = MomentBasedEstimator(e)
+
+    if grad == nothing
+        mf  = make_fad_mom_fun(g, IdentitySmoother())
+    else
+        ∇f(ϑ) = data == nothing ? grad(ϑ) : grad(ϑ, data)
+        mf  = make_ana_mom_fun(GMMEstimator, g, ∇f)
+    end
+
+    MomentBasedEstimator(GMMEstimator(mf, Unconstrained(), ϑ, lb, ub, nf, nf,
+                                      mgr, IterationState([1], [10.0], ϑ), W,
+                                      w, ni, ni, n, p, m))
 end
 
-function GMMEstimator(f::Function, x0::Vector;
-                      data = nothing,
-                      initialW = nothing,
-                      wts = nothing,
-                      mgr::IterationManager = TwoStepGMM(),
-                      dtype::Symbol = :dual)
+typealias GradTuple Union(Nothing, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function})
 
-    w = wts == nothing ? Unweighted() : Weighted(float(wts))
-    _mf(x0) = data == nothing ? f(x0) : f(x0, data)
-    g0  = _mf(x0); n, m = size(g0); p = length(x0)
-    ## Bounds
-    bt  = [Inf for j=1:p]
-    nf  = Float64[]
-    ni  = 0::Int64
-    ## Weighting matrix
-    initialW  = initialW == nothing ? eye(Float64, m) : initialW
-    _W   = setW0(mgr, m); _W[1][:,:] = initialW
-    ## Moment function
-    mf  = MomentFunction(_mf, dtype, nobs = n, npar = p, nmom = m)
-    ## GMMEstimator
-    e   = GMMEstimator(mf, Unconstrained(), x0, -bt, +bt, nf, nf,
-                       mgr, IterationState([1], [10.0], x0), _W, w, ni, ni)
-    ## MomentBasedEstimator
-    g   = MomentBasedEstimator(e)
-end
 
-function MDEstimator(f::Function, x0::Vector; data = nothing, wts = nothing,
+function MDEstimator(f::Function, ϑ::Vector;
+                     grad::GradTuple = nothing,
+                     data = nothing, wts = nothing,
                      div::Divergence = DEFAULT_DIVERGENCE,
-                     kernel::SmoothingKernel = IdentitySmoother(),
-                     dtype::Symbol = :dual)
-    _mf(x0) = data == nothing ? f(x0) : f(x0, data)
-    w = wts == nothing ? Unweighted() : Weighted(wts)
-    g0  = _mf(x0); n, m = size(g0); p = length(x0)
-    bt  = [Inf for j=1:p]
+                     kernel::SmoothingKernel = IdentitySmoother())
+    ## Set Moment Function
+    g(ϑ) = data == nothing ? f(ϑ) : f(ϑ, data)
+    ## Evaluate Moment Function
+    g₀ = g(ϑ)
+    n, m, p = (size(g₀)..., length(ϑ))
+    ## Weighting
+    w = wts == nothing ? Unweighted() : Weighted(float(wts))
+
+    ## Set Default bounds
+    # Bounds on ϑ
+    lb  = [-Inf for j=1:p]
+    ub  = [+Inf for j=1:p]
+    # Bounds on mdweights
     wlb = zeros(Float64, n)
-    wub = ones(Float64,  n)*n
-    glb = [zeros(m), n];
-    gub = [zeros(m), n];
+    wub = ones(Float64, n)*n
+    # Bounds on constraint
+    glb = [zeros(m); n];
+    gub = [zeros(m); n];
+    # ?
     ni  = 0::Int64
-    mf  = MomentFunction(_mf, dtype, kernel = kernel, nobs = n, npar = p, nmom = m)
-    e   = MDEstimator(mf, Unconstrained(), x0, -bt, bt, glb, gub, wlb, wub,
-                      div, w, ni, ni)
-    g   = MomentBasedEstimator(e)
+    ##
+
+    if grad == nothing
+        mf  = make_fad_mom_fun(g, kernel)
+    else
+        ff = Array(Function, length(grad))
+        if data != nothing
+            for (i, f) in enumerate(grad)                
+                _f = copy(f)
+                _g(ϑ) = _f(ϑ, data)
+                ff[i] = _g(ϑ)
+            end
+            grad = (ff...)
+        end        
+        mf  = make_ana_mom_fun(MDEstimator, g, grad)
+    end
+
+    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), ϑ, lb, ub, glb, gub, wlb, wub,
+                                     div, w, ni, ni, n, p, m))
 end
 
 ################################################################################
@@ -101,11 +117,11 @@ function solve!(g::MomentBasedEstimator)
 	end
 end
 
-function initialize!{V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{V, S, T}})
+function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
 	n, p, m = size(g)
 	ξ₀ = [ones(n); startingval(g)]
-	g.e.gele = int((n+p)*(m+1)-p)
-	g.e.hele = int(n*p + n + (p+1)*p/2)
+	g.e.gele = Int((n+p)*(m+1)-p)
+	g.e.hele = Int(n*p + n + (p+1)*p/2)
 	g_L = getmfLB(g)
 	g_U = getmfUB(g)
 	u_L = [getwtsLB(g); getparLB(g)]
@@ -115,7 +131,7 @@ function initialize!{V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBas
 	g.status = :Initialized
 end
 
-function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{V, S, T}})
+function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
 	n, p, m = size(g)
 	ξ₀ = MomentBasedEstimators.startingval(g)
 	g.e.gele = @compat Int(p)
@@ -129,7 +145,7 @@ function initialize!{V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::Mom
 	g.status = :Initialized
 end
 
-function initialize!{V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{V, S, T}})
+function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
 	n, p, m = size(g)
 	ξ₀ = MomentBasedEstimators.startingval(g)
 	g.e.gele = @compat Int(g.e.c.nc*p)
@@ -144,7 +160,9 @@ function initialize!{V<:IterationManager, S<:Constrained, T<:Weighting}(g::Momen
 end
 
 
-
+################################################################################
+## Getters
+################################################################################
 
 getparLB(g::MomentBasedEstimator) = g.e.lb
 getparUB(g::MomentBasedEstimator) = g.e.ub
@@ -152,8 +170,8 @@ getparUB(g::MomentBasedEstimator) = g.e.ub
 getmfLB(g::MomentBasedEstimator) = g.e.glb
 getmfUB(g::MomentBasedEstimator) = g.e.gub
 
-getwtsLB{V, T, S}(g::MomentBasedEstimator{MDEstimator{V, T, S}}) = g.e.wlb
-getwtsUB{V, T, S}(g::MomentBasedEstimator{MDEstimator{V, T, S}}) = g.e.wub
+getwtsLB{M, V, T, S}(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) = g.e.wlb
+getwtsUB{M, V, T, S}(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) = g.e.wub
 
 ################################################################################
 ## Set constraint on parameters
@@ -188,7 +206,7 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
                       g.e.wtg,
                       g.e.gele,
                       g.e.hele)
-    
+
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end
 
@@ -261,6 +279,7 @@ end
 ################################################################################
 ## Update initial weighting matrix (default is I(m))
 ################################################################################
+## TODO: This should depend on the Iteration Manager
 function setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2})
     copy!(g.e.W , W)
 end
