@@ -23,7 +23,6 @@ const DEFAULT_DIVERGENCE = KullbackLeibler()
 
 ## Common
 include("md/smoothing.jl")
-#include("common/derivatives.jl")
 ## GMM
 include("gmm/iteration_managers.jl")
 
@@ -33,8 +32,6 @@ include("common/api.jl")
 
 include("gmm/mathprogbase.jl")
 include("md/mathprogbase.jl")
-# include("common/display.jl")
-# include("common/post_estimation.jl")
 
 include("common/util.jl")
 include("common/post_estimation.jl")

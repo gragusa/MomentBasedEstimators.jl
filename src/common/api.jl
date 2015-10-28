@@ -16,16 +16,35 @@ Base.size(g::MomentBasedEstimator) = (nobs(g.e), npar(g.e), nmom(g.e))
 objval(e::MomentBasedEstimator) = e.r.objval
 
 
-# StatsBase.nobs(m::MomentFunction) = m.nobs
-# npar(m::MomentFunction) = m.npar
-# nmom(m::MomentFunction) = m.nmom
-# Base.size(m::MomentFunction) = (nobs(m), npar(m), nmom(m))
+
+abstract MomentFunctionDiff{T, S}
+
+immutable ForwardAutomatic end
+immutable FiniteDifference end
+immutable AnalitycJacobian end
+
+
+type GMMDiff{T, S} <: MomentFunctionDiff{T, S}
+    kind::T
+    grad::S
+end
+
+GMMDiff() =  GMMDiff(ForwardAutomatic(), identity)
+
+type MDEDiff{T, S} <: MomentFunctionDiff{T, S}
+    kind::T
+    Dsn::S
+    Dws::S
+    Dlws::S
+    Hl::S
+end
+
 
 ################################################################################
 ## Constructor with function and x0
 ################################################################################
 function GMMEstimator(f::Function, ϑ::Vector;
-                      grad = nothing,
+                      grad = MomentFunctionDiff = GMMDiff(),
                       data = nothing,
                       initialW = nothing,
                       wts = nothing,
@@ -47,6 +66,8 @@ function GMMEstimator(f::Function, ϑ::Vector;
     nf  = Float64[]
     ni  = 0::Int64
 
+    make_fad_mom_fun(grad, 
+    
     if grad == nothing
         mf  = make_fad_mom_fun(g, IdentitySmoother())
     else

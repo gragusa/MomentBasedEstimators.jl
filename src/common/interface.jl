@@ -135,6 +135,19 @@ function make_fad_mom_fun(g::Function,
     FADMomFun(g, θ->smooth(g(θ), kernel), kernel)
 end
 
+function make_mom_fun(grad::GMMDiff{ForwardAutomatic},
+                      g::Function, 
+                      kernel::SmoothingKernel = IdentitySmoother())
+    FADMomFun(g, θ->smooth(g(θ), kernel), kernel)
+end
+
+function make_mom_fun(grad::GMMDiff{ForwardAutomatic},
+                      g::Function, 
+                      kernel::SmoothingKernel = IdentitySmoother())
+    FADMomFun(g, θ->smooth(g(θ), kernel), kernel)
+end
+
+
 function make_ana_mom_fun(::Type{GMMEstimator}, g::Function, ∇g::Function)    
     AnaGradMomFun(g, g, ∇g, identity, identity, IdentitySmoother())
 end
