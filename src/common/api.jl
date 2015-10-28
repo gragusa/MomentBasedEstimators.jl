@@ -59,7 +59,7 @@ function GMMEstimator(f::Function, ϑ::Vector;
                                       w, ni, ni, n, p, m))
 end
 
-typealias GradTuple Union(Nothing, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function})
+typealias GradTuple Union{Void, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
 
 
 function MDEstimator(f::Function, ϑ::Vector;
