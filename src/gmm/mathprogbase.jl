@@ -2,7 +2,7 @@
 # MathProgBase solver interface - GMMEstimator
 ################################################################################
 
-function MathProgSolverInterface.initialize(d::GMMEstimator, rf::Vector{Symbol})
+function MathProgBase.initialize(d::GMMEstimator, rf::Vector{Symbol})
     for feat in rf
         if !(feat in [:Grad, :Jac, :Hess])
             error("Unsupported feature $feat")
@@ -10,21 +10,21 @@ function MathProgSolverInterface.initialize(d::GMMEstimator, rf::Vector{Symbol})
     end
 end
 
-MathProgSolverInterface.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
+MathProgBase.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
 
-function MathProgSolverInterface.eval_f(e::GMMEstimator, theta)
+function MathProgBase.eval_f(e::GMMEstimator, theta)
     idx = e.ist.n[1]   
     gn = vec(sum(e.mf.s(theta), 1))
     Base.dot(gn, e.W[idx]*gn)
 end
 
-eval_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, g, theta) = nothing
+MathProgBase.eval_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, g, theta) = nothing
 
-function eval_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, g, theta)
+function MathProgBase.eval_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, g, theta)
     g[:] = e.c.h(theta)
 end
 
-function eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
+function MathProgBase.eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
     idx = e.ist.n[1]
     sn(θ) = vec(sum(e.mf.s(θ), 1))
     gemm!('T', 'N', 2.0,
@@ -32,7 +32,7 @@ function eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f,
           e.W[idx]*sn(θ), 0.0, grad_f)
 end
 
-function eval_grad_f{M <: AnaMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
+function MathProgBase.eval_grad_f{M <: AnaMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_f, θ)
     ##grad_f[:] = 2*d.Dsn(theta)'*(d.W*d.sn(theta))
     idx = e.ist.n[1]
     sn = vec(sum(e.mf.s(θ), 1))
@@ -41,10 +41,10 @@ function eval_grad_f{M <: AnaMomFun, V, T, S}(e::GMMEstimator{M, V, T, S}, grad_
           e.W[idx]*sn, 0.0, grad_f)
 end
 
-jac_structure{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}) = Int[],Int[]
-eval_jac_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, J, x) = nothing
+MathProgBase.jac_structure{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}) = Int[],Int[]
+MathProgBase.eval_jac_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, J, x) = nothing
 
-function jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S})
+function MathProgBase.jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S})
     nc = e.c.nc            ## Number of constraints
     n, k, m = size(e.mf)
     ## The jacobian is a nc x k
@@ -55,12 +55,12 @@ function jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S})
         @inbounds cols[r+(j-1)*k] = r
     end
     rows, cols
-end 
+end
 
-function eval_jac_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, J, θ)
+function MathProgBase.eval_jac_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, J, θ)
     h(θ) = e.c.h(θ)
     J[:] = vec(ForwardDiff.hessian(h, θ, chunk_size = length(θ))')
 end
 
-hesslag_structure(d::GMMEstimator) = Int[], Int[]
-eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing
+MathProgBase.hesslag_structure(d::GMMEstimator) = Int[], Int[]
+MathProgBase.eval_hesslag(d::GMMEstimator, H, x, σ, μ) = nothing

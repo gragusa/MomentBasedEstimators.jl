@@ -12,11 +12,11 @@ using Base.LinAlg.BLAS
 using Compat
 @reexport using CovarianceMatrices
 
-import MathProgBase: MathProgSolverInterface
-import MathProgBase.MathProgSolverInterface: eval_f, eval_grad_f, eval_g, eval_jac_g, eval_hesslag
+#import MathProgBase: MathProgSolverInterface
+#import MathProgBase: eval_f, eval_grad_f, eval_g, eval_jac_g, eval_hesslag
 
-import MathProgBase.MathProgSolverInterface: jac_structure, hesslag_structure
-import MathProgBase.MathProgSolverInterface: loadnonlinearproblem!
+#import MathProgBase: jac_structure, hesslag_structure
+#import MathProgBase: loadnonlinearproblem!
 import CovarianceMatrices.RobustVariance
 
 const DEFAULT_DIVERGENCE = KullbackLeibler()

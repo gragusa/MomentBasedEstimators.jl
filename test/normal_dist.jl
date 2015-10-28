@@ -49,12 +49,29 @@ step_2_iid = GMMEstimator(h, coef(step_1), initialW = optimal_W(step_1, HC0()));
 initialize!(step_2_iid);
 estimate!(step_2_iid);
 
-step_qs_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)));
+gmm_qs_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)));
 
 initialize!(step_qs_mgr);
 estimate!(step_qs_mgr);
 
-step_iid_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(HC0()));
+gmm_iid_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(HC0()));
 initialize!(step_iid_mgr);
 estimate!(step_iid_mgr);
+
+### MDE
+
+kl_iid = MDEstimator(h, [1.0, 1.0])
+initialize!(kl_iid)
+estimate!(kl_iid)
+
+kl_smt = MDEstimator(h, [1.0, 1.0], kernel = MomentBasedEstimators.TruncatedSmoother(2))
+initialize!(kl_smt)
+estimate!(kl_smt)
+
+
+
+el_iid = MDEstimator(h, [1.0, 1.0], div = Divergences.ReverseKullbackLeibler())
+cu_iid = MDEstimator(h, [1.0, 1.0], div = Divergences.ChiSquared())
+
+
 

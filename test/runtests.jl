@@ -2,7 +2,7 @@ using MomentBasedEstimators
 using FactCheck
 
 facts("Testing basic interface") do
-    context("Test from vignette for the R gmm package.") do
+    context("Test from vignette for the R gmm package. Automatic Differentiation") do
         include("normal_dist.jl")
         cft = [3.843, 2.067]
         cfe = coef(step_1)

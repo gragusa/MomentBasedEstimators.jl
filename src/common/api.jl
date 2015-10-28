@@ -126,37 +126,37 @@ function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weig
 	g_U = getmfUB(g)
 	u_L = [getwtsLB(g); getparLB(g)]
 	u_U = [getwtsUB(g); getparUB(g)]
-	loadnonlinearproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
-	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
+	MathProgBase.loadnonlinearproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
+	MathProgBase.setwarmstart!(g.m, ξ₀)
 	g.status = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
-	n, p, m = size(g)
-	ξ₀ = MomentBasedEstimators.startingval(g)
-	g.e.gele = @compat Int(p)
-	g.e.hele = @compat Int(2*p)
-	g_L = Float64[]
-	g_U = Float64[]
-	u_L = MomentBasedEstimators.getparLB(g)
-	u_U = MomentBasedEstimators.getparUB(g)
-    loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
-	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
-	g.status = :Initialized
+	   n, p, m = size(g)
+	   ξ₀ = MomentBasedEstimators.startingval(g)
+	   g.e.gele = @compat Int(p)
+	   g.e.hele = @compat Int(2*p)
+	   g_L = Float64[]
+	   g_U = Float64[]
+	   u_L = MomentBasedEstimators.getparLB(g)
+	   u_U = MomentBasedEstimators.getparUB(g)
+    MathProgBase.loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
+	   MathProgBase.setwarmstart!(g.m, ξ₀)
+	   g.status = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
-	n, p, m = size(g)
-	ξ₀ = MomentBasedEstimators.startingval(g)
-	g.e.gele = @compat Int(g.e.c.nc*p)
-	g.e.hele = @compat Int(0)
-	g_L = g.e.c.hlb
-	g_U = g.e.c.hub
-	u_L = MomentBasedEstimators.getparLB(g)
-	u_U = MomentBasedEstimators.getparUB(g)
-    loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
-	MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, ξ₀)
-	g.status = :Initialized
+	   n, p, m = size(g)
+	   ξ₀ = MomentBasedEstimators.startingval(g)
+	   g.e.gele = @compat Int(g.e.c.nc*p)
+	   g.e.hele = @compat Int(0)
+	   g_L = g.e.c.hlb
+	   g_U = g.e.c.hub
+	   u_L = MomentBasedEstimators.getparLB(g)
+	   u_U = MomentBasedEstimators.getparUB(g)
+    MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+	   MathProgBase.setwarmstart!(g.m, ξ₀)
+	   g.status = :Initialized
 end
 
 
@@ -215,7 +215,7 @@ end
 ################################################################################
 function solver!(g::MomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     g.s = s
-    g.m = deepcopy(MathProgBase.MathProgSolverInterface.model(s))
+    g.m = deepcopy(MathProgBase.model(s))
 end
 
 ################################################################################
@@ -299,7 +299,7 @@ function setx0!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, x0::Vector{Float6
     ## For GMM x0 is the parameter
     length(x0) == npar(g) || throw(DimensionMismatch(""))
     copy!(g.e.x0, x0)
-    MathProgBase.MathProgSolverInterface.setwarmstart!(g.m, x0)
+    MathProgBase.setwarmstart!(g.m, x0)
 end
 
 function setx0!{S <: MDEstimator}(m::MomentBasedEstimator{S}, x0::Vector{Float64})
@@ -307,7 +307,7 @@ function setx0!{S <: MDEstimator}(m::MomentBasedEstimator{S}, x0::Vector{Float64
     length(x0) == npar(m) || throw(DimensionMismatch(""))
     copy!(m.e.x0, x0)
     x00 = [m.m.inner.x[1:nobs(m)], x0]
-    MathProgBase.MathProgSolverInterface.setwarmstart!(m.m, x00)
+    MathProgBase.setwarmstart!(m.m, x00)
 end
 
 function estimate!(g::MomentBasedEstimator)
@@ -322,52 +322,52 @@ function estimate!(g::MomentBasedEstimator)
 end
 
 function fill_in_results!{S <: MDEstimator}(g::MomentBasedEstimator{S})
-    g.r.status = MathProgBase.MathProgSolverInterface.status(g.m)
+    g.r.status = MathProgBase.status(g.m)
     n, p, m = size(g)
-    ss = MathProgBase.MathProgSolverInterface.getsolution(g.m)
+    ss = MathProgBase.getsolution(g.m)
     copy!(g.r.coef, ss[n+1:end])
     #g.r.mdwts  = ss[1:n]
-    g.r.objval = MathProgBase.MathProgSolverInterface.getobjval(g.m)
+    g.r.objval = MathProgBase.getobjval(g.m)
 end
 
 function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
-    g.r.status = MathProgBase.MathProgSolverInterface.status(g.m)
+    g.r.status = MathProgBase.status(g.m)
     n, p, m = size(g)
-    copy!(g.r.coef, MathProgBase.MathProgSolverInterface.getsolution(g.m))
-    g.r.objval = MathProgBase.MathProgSolverInterface.getobjval(g.m)
+    copy!(g.r.coef, MathProgBase.getsolution(g.m))
+    g.r.objval = MathProgBase.getobjval(g.m)
 end
 
 function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
     # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
     # KNITRO.solveProblem(g.m.inner)
-    MathProgBase.MathProgSolverInterface.optimize!(g.m)
+    MathProgBase.optimize!(g.m)
 end
 
-solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.MathProgSolverInterface.optimize!(g.m)
+solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.optimize!(g.m)
 
 function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractMathProgModel)
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
         ## if g.e.ist.n[1] > 1
-        ##     g.m = MathProgSolverInterface.model(g.s)
+        ##     g.m = model(g.s)
         ##     loadnonlinearproblem!(g.m, p, 0, getparLB(g), getparUB(g), getmfLB(g),
         ##                           getmfUB(g), :Min, g.e)
-        ##     MathProgSolverInterface.setwarmstart!(g.m, theta)
+        ##     setwarmstart!(g.m, theta)
     ## end
         if g.e.ist.n[1]>1
             g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k)
         end
-        MathProgSolverInterface.optimize!(g.m)
+        MathProgBase.optimize!(g.m)
         # update theta and W
-        theta = MathProgSolverInterface.getsolution(g.m)
+        theta = MathProgBase.getsolution(g.m)
         update!(g.e.ist, theta)
         next!(g.e.ist)
         ## g.e.ist.n[:] += 1
         ## g.e.ist.change[:] = maxabs(g.e.ist.prev - theta)
         ## g.e.ist.prev[:] = theta
         if !(finished(g.e.mgr, g.e.ist))
-            MathProgSolverInterface.setwarmstart!(g.m, theta)
+            MathProgBase.setwarmstart!(g.m, theta)
         end
         # update iteration state
     end

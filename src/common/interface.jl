@@ -1,4 +1,4 @@
-abstract GenericMomentBasedEstimator <: MathProgBase.MathProgSolverInterface.AbstractNLPEvaluator
+abstract GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator
 abstract Constraint
 abstract Weighting
 
@@ -122,7 +122,7 @@ function MomentBasedEstimator(e::GenericMomentBasedEstimator)
             Array(Float64, npar(e)),
             Array(Float64, npar(e), npar(e))),
         DEFAULT_SOLVER(e),
-        MathProgSolverInterface.model(DEFAULT_SOLVER(e)),
+        model(DEFAULT_SOLVER(e)),
         :Uninitialized)
 end
 

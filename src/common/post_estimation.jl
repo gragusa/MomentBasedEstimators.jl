@@ -12,6 +12,10 @@ momentfunction{T}(e::MomentBasedEstimator{T}, s::Symbol) = s==:Smoothed ? e.e.mf
 
 mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.m.inner.x[1:nobs(e)]
 
+
+
+
+
 function jacobian{T <: GMMEstimator}(e::MomentBasedEstimator{T})
     s(θ) = vec(sum(e.e.mf.s(θ), 1))
     θ = coef(e)
@@ -119,8 +123,6 @@ end
 function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
     sqrt(diag(vcov(e, robust, ver)))
 end
-
-
 
 StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T})  = vcov(e, false, :Weighted)
 function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
