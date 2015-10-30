@@ -12,14 +12,14 @@ facts("Testing basic interface") do
             @fact cfe[j] --> roughly(cft[j], 0.01)
             @fact sde[j] --> roughly(sdt[j], 0.01)
         end
-        Je, pe = MomentBasedEstimators.J_test(step_iid_mgr)
+        Je, pe = MomentBasedEstimators.J_test(gmm_iid_mgr)
         ## This is the objective value, which is the J-test
         ## for other softwares
         ov     = 1.4398836656920428
         Jt, pt = (1.4378658264483137,0.23048500853597673)
         @fact Je --> roughly(Jt, atol = 0.01)
         @fact pe --> roughly(pt, atol = 0.01)
-        @fact objval(step_iid_mgr) --> roughly(ov, atol = 0.1)
+        @fact objval(gmm_iid_mgr) --> roughly(ov, atol = 0.1)
     end
 
     context("Example 13.5 from Greene (2012) -- verified with Stata") do

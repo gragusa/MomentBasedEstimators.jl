@@ -47,7 +47,6 @@ hub = [0.]
 cstep_1 = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
 
 
-
 step_2_hac = GMMEstimator(h, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, QuadraticSpectralKernel(0.91469)));
 
 initialize!(step_2_hac);
@@ -59,15 +58,14 @@ estimate!(step_2_iid);
 
 gmm_qs_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)));
 
-initialize!(step_qs_mgr);
-estimate!(step_qs_mgr);
+initialize!(gmm_qs_mgr);
+estimate!(gmm_qs_mgr);
 
 gmm_iid_mgr = GMMEstimator(h, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(HC0()));
-initialize!(step_iid_mgr);
-estimate!(step_iid_mgr);
+initialize!(gmm_iid_mgr);
+estimate!(gmm_iid_mgr);
 
 ### MDE
-
 kl_iid = MDEstimator(h, [1.0, 1.0])
 initialize!(kl_iid)
 estimate!(kl_iid)
