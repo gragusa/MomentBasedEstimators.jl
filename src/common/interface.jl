@@ -91,8 +91,6 @@ type Unconstrained <: Constraint end
 
 type Constrained <: Constraint
     h::Function
-    Dh::Function
-    Hh::Function
     hlb::Array{Float64, 1}
     hub::Array{Float64, 1}
     nc::Int64  ## Number of constraints: row of h(θ)
@@ -132,7 +130,7 @@ setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m, m) for i=1:mgr.maxiter+1
 
 function make_fad_mom_fun(g::Function, 
                           kernel::SmoothingKernel = IdentitySmoother())
-    FADMomFun(g, θ->smooth(g(θ), kernel), kernel)
+    FADMomFun(g, θ -> smooth(g(θ), kernel), kernel)
 end
 
 function make_ana_mom_fun(::Type{GMMEstimator}, g::Function, ∇g::Function)    

@@ -13,9 +13,6 @@ momentfunction{T}(e::MomentBasedEstimator{T}, s::Symbol) = s==:Smoothed ? e.e.mf
 mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.m.inner.x[1:nobs(e)]
 
 
-
-
-
 function jacobian{T <: GMMEstimator}(e::MomentBasedEstimator{T})
     s(θ) = vec(sum(e.e.mf.s(θ), 1))
     θ = coef(e)
@@ -63,8 +60,8 @@ end
 mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}) = mfvcov(e, :Weighted)
 
 
-mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(momentfunction(e), smoothing_kernel(e)) 
-mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance) = vcov(momentfunction(e), k) 
+mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(momentfunction(e), smoothing_kernel(e))
+mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance) = vcov(momentfunction(e), k)
 
 initial_weighting{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.W[end]
 

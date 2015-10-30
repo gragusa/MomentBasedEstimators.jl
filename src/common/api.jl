@@ -29,7 +29,8 @@ function GMMEstimator(f::Function, ϑ::Vector;
                       data = nothing,
                       initialW = nothing,
                       wts = nothing,
-                      mgr::IterationManager = TwoStepGMM())
+                      mgr::IterationManager = TwoStepGMM(),
+                      constraints = Unconstrained())
     ## Set Moment Function
     g(ϑ) = data == nothing ? f(ϑ) : f(ϑ, data)
     ## Evaluate Moment Function
@@ -53,8 +54,8 @@ function GMMEstimator(f::Function, ϑ::Vector;
         ∇f(ϑ) = data == nothing ? grad(ϑ) : grad(ϑ, data)
         mf  = make_ana_mom_fun(GMMEstimator, g, ∇f)
     end
-
-    MomentBasedEstimator(GMMEstimator(mf, Unconstrained(), ϑ, lb, ub, nf, nf,
+    
+    MomentBasedEstimator(GMMEstimator(mf, constraints, ϑ, lb, ub, nf, nf,
                                       mgr, IterationState([1], [10.0], ϑ), W,
                                       w, ni, ni, n, p, m))
 end
@@ -188,13 +189,14 @@ end
 ## This return a constrained version of MomentBasedEstimator
 function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator)
     p = npar(g); chk = check_constraint_sanity(p, startingval(g), h, hlb, hub)
-    Dh = forwarddiff_jacobian(h, Float64, fadtype=:typed)
-    lh(x, λ) = λ'*h
-    Hh = args_typed_fad_hessian(lh, Float64)
     r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array(Float64, p), Array(Float64, p, p))
-
-    ce = GMMEstimator(g.e.mf,
-                      Constrained(h, Dh, Hh, chk...),
+    if typeof(g.e.mf) == MomentBasedEstimators.FADMomFun
+        mf  = make_fad_mom_fun(g.e.mf.g, IdentitySmoother())
+    else
+        mf  = make_ana_mom_fun(GMMEstimator, g.e.mf.g, g.e.mf.∇g)
+    end
+    ce = GMMEstimator(mf,
+                      Constrained(h, chk...),
                       g.e.x0,
                       g.e.lb,
                       g.e.ub,
@@ -205,7 +207,8 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
                       g.e.W,
                       g.e.wtg,
                       g.e.gele,
-                      g.e.hele)
+                      g.e.hele,
+                      size(g)...)
 
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end

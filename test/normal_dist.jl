@@ -40,6 +40,14 @@ step_1     = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
 initialize!(step_1);
 estimate!(step_1);
 
+ch(θ) = [1 -1]*θ
+hlb = [0.]
+hub = [0.]
+
+cstep_1 = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
+
+
+
 step_2_hac = GMMEstimator(h, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, QuadraticSpectralKernel(0.91469)));
 
 initialize!(step_2_hac);

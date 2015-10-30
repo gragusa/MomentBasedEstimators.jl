@@ -46,7 +46,7 @@ MathProgBase.eval_jac_g{M, V, T<:Unconstrained, S}(e::GMMEstimator{M, V, T, S}, 
 
 function MathProgBase.jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S})
     nc = e.c.nc            ## Number of constraints
-    n, k, m = size(e.mf)
+    n, k, m = size(e)
     ## The jacobian is a nc x k
     rows = Array(Int64, e.gele)
     cols = Array(Int64, e.gele)    
@@ -59,7 +59,7 @@ end
 
 function MathProgBase.eval_jac_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, J, θ)
     h(θ) = e.c.h(θ)
-    J[:] = vec(ForwardDiff.hessian(h, θ, chunk_size = length(θ))')
+    J[:] = vec(ForwardDiff.jacobian(h, θ)')
 end
 
 MathProgBase.hesslag_structure(d::GMMEstimator) = Int[], Int[]
