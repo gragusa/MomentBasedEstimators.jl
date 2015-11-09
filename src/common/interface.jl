@@ -100,8 +100,12 @@ type DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
     s::MathProgBase.AbstractMathProgSolver
 end
 
-DEFAULT_SOLVER(::GMMEstimator) = IpoptSolver(hessian_approximation="limited-memory", print_level=2)
+function DEFAULT_SOLVER(::GMMEstimator) 
+  IpoptSolver(hessian_approximation = "limited-memory", print_level=2)
+end
+
 DEFAULT_SOLVER(::MDEstimator)  = IpoptSolver(print_level=2)
+
 
 type MomentBasedEstimator{T<:GenericMomentBasedEstimator}
     e::T
@@ -128,12 +132,12 @@ setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
 setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:1]
 setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m, m) for i=1:mgr.maxiter+1]
 
-function make_fad_mom_fun(g::Function, 
+function make_fad_mom_fun(g::Function,
                           kernel::SmoothingKernel = IdentitySmoother())
     FADMomFun(g, θ -> smooth(g(θ), kernel), kernel)
 end
 
-function make_ana_mom_fun(::Type{GMMEstimator}, g::Function, ∇g::Function)    
+function make_ana_mom_fun(::Type{GMMEstimator}, g::Function, ∇g::Function)
     AnaGradMomFun(g, g, ∇g, identity, identity, IdentitySmoother())
 end
 

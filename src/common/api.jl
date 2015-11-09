@@ -12,9 +12,7 @@ npar(g::MomentBasedEstimator) = npar(g.e)
 nmom(g::MomentBasedEstimator) = nmom(g.e)
 Base.size(g::MomentBasedEstimator) = (nobs(g.e), npar(g.e), nmom(g.e))
 
-
 objval(e::MomentBasedEstimator) = e.r.objval
-
 
 # StatsBase.nobs(m::MomentFunction) = m.nobs
 # npar(m::MomentFunction) = m.npar
@@ -54,7 +52,7 @@ function GMMEstimator(f::Function, ϑ::Vector;
         ∇f(ϑ) = data == nothing ? grad(ϑ) : grad(ϑ, data)
         mf  = make_ana_mom_fun(GMMEstimator, g, ∇f)
     end
-    
+
     MomentBasedEstimator(GMMEstimator(mf, constraints, ϑ, lb, ub, nf, nf,
                                       mgr, IterationState([1], [10.0], ϑ), W,
                                       w, ni, ni, n, p, m))
@@ -95,13 +93,13 @@ function MDEstimator(f::Function, ϑ::Vector;
     else
         ff = Array(Function, length(grad))
         if data != nothing
-            for (i, f) in enumerate(grad)                
+            for (i, f) in enumerate(grad)
                 _f = copy(f)
                 _g(ϑ) = _f(ϑ, data)
                 ff[i] = _g(ϑ)
             end
             grad = (ff...)
-        end        
+        end
         mf  = make_ana_mom_fun(MDEstimator, g, grad)
     end
 
@@ -134,14 +132,14 @@ end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
 	   n, p, m = size(g)
-	   ξ₀ = MomentBasedEstimators.startingval(g)
+	   ξ₀ = startingval(g)
 	   g.e.gele = @compat Int(p)
 	   g.e.hele = @compat Int(2*p)
 	   g_L = Float64[]
 	   g_U = Float64[]
-	   u_L = MomentBasedEstimators.getparLB(g)
-	   u_U = MomentBasedEstimators.getparUB(g)
-    MathProgBase.loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
+	   u_L = getparLB(g)
+	   u_U = getparUB(g)
+     MathProgBase.loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
@@ -153,18 +151,16 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:
 	   g.e.hele = @compat Int(0)
 	   g_L = g.e.c.hlb
 	   g_U = g.e.c.hub
-	   u_L = MomentBasedEstimators.getparLB(g)
-	   u_U = MomentBasedEstimators.getparUB(g)
-    MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+	   u_L = getparLB(g)
+	   u_U = getparUB(g)
+     MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
 
-
 ################################################################################
 ## Getters
 ################################################################################
-
 getparLB(g::MomentBasedEstimator) = g.e.lb
 getparUB(g::MomentBasedEstimator) = g.e.ub
 
@@ -378,14 +374,15 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
     g
 end
 
-
 next!(x::IterationState) = x.n[1] += 1
+
 function update!(x::IterationState, v::Vector)
     x.change[:] = maxabs(x.prev - v)
     x.prev[:] = v
 end
 
-reset_iteration_state!(g::MomentBasedEstimator) = g.e.ist = deepcopy(IterationState([1], [10.0], startingval(g)))
+reset_iteration_state!(g::MomentBasedEstimator) =
+    g.e.ist = deepcopy(IterationState([1], [10.0], startingval(g)))
 
 function optimal_W(mf::MomentFunction, theta::Vector, k::RobustVariance)
     h = mf.s(theta)

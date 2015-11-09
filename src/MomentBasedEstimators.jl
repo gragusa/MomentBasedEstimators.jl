@@ -12,11 +12,6 @@ using Base.LinAlg.BLAS
 using Compat
 @reexport using CovarianceMatrices
 
-#import MathProgBase: MathProgSolverInterface
-#import MathProgBase: eval_f, eval_grad_f, eval_g, eval_jac_g, eval_hesslag
-
-#import MathProgBase: jac_structure, hesslag_structure
-#import MathProgBase: loadnonlinearproblem!
 import CovarianceMatrices.RobustVariance
 
 const DEFAULT_DIVERGENCE = KullbackLeibler()
@@ -30,6 +25,8 @@ include("gmm/iteration_managers.jl")
 ## MD
 include("common/interface.jl")
 include("common/api.jl")
+include("md/mdp.jl")
+
 
 include("gmm/mathprogbase.jl")
 include("md/mathprogbase.jl")
@@ -50,6 +47,7 @@ export GMMEstimator,
        Unweighted,
        MomentFunction,
        MomentBasedEstimator,
+       MinimumDivergenceProblem,
        status,
        estimate!,
        initialize!,
