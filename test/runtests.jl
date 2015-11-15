@@ -32,12 +32,12 @@ facts("Testing basic interface") do
         Je, pe = MomentBasedEstimators.J_test(two_step)
         ## The following test is conditional on version.
         ## What changed is the tol for pinv between 0.3 and 0.4
-        ## 
+        ##
         if VERSION < v"0.4-"
             Jt, pt = (1.7433378725860427,0.41825292894063326)
         else
             Jt, pt = (3.0875508893757986,0.21357324340764258)
-        end 
+        end
         ## This is the stata J-test
         ov = 1.97522
         @fact Je --> roughly(Jt, atol=1e-3)
@@ -53,11 +53,11 @@ facts("Testing basic interface") do
         for j = 1:2
             @fact cfe[j] --> roughly(cf_stata[j], atol=1e-3)
         end
-        
+
         V_stata = [ .00478911  -.00272551   .00163441;
                     -.00272551   .01026473  -.00201291;
                     .00163441   -.00201291   .00983372]
-        
+
         for j = 1:length(V)
             @fact V[j] --> roughly(V_stata[j], atol = 0.01)
         end
@@ -66,7 +66,7 @@ facts("Testing basic interface") do
         ov = 1.191
         @fact objval(gmm2s) --> roughly(ov, atol = 0.02)
     end
-    context("Instrumental variables large --- verified by asymptotics") do        
+    context("Instrumental variables large --- verified by asymptotics") do
         include("instrumental_variables_large.jl")
         @fact status(gmm_base)    --> :Optimal
         @fact status(gmm_one)     --> :Optimal
@@ -79,11 +79,11 @@ facts("Testing basic interface") do
 
         @fact coef(el_base) --> roughly(coef(kl_base), 0.01)
         @fact coef(kl_base) --> roughly(coef(kl_ana_full))
-        
+
         @fact objval(kl_base) --> roughly(objval(kl_ana_full))
 
         @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
-        @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))              
+        @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
         @fact vcov(gmm_base) --> roughly(vcov(el_base), 0.01)
 
         @fact vcov(el_base, false, :Unweighted)  --> roughly(vcov(gmm_base), 0.001)
@@ -97,36 +97,41 @@ facts("Testing basic interface") do
         @fact vcov(kl_ana_grad, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
         @fact vcov(kl_ana_full, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
         @fact vcov(cue_base, false, :Weighted) --> roughly(vcov(gmm_base), 0.001)
-        
+
         @fact stderr(gmm_base)' --> sqrt(vcov(gmm_base))
-        
+
         @fact stderr(kl_base)' --> sqrt(vcov(kl_base))
         @fact stderr(el_base)' --> sqrt(vcov(el_base))
-        
+
         @fact stderr(kl_base, false, :Weighted) --> stderr(kl_base)
         @fact stderr(el_base, false, :Weighted) --> stderr(el_base)
-        
-        @fact J_test(gmm_base) --> (7.937738532483664,0.5404326890480416)
-        @fact J_test(el_base)  --> (7.707938341442013,0.5638257266957507)
+
+        tmp = J_test(gmm_base)
+        @fact tmp[1] --> roughly(7.937738532483664, 1e-07)
+        @fact tmp[2] --> roughly(0.5404326890480416, 1e-07)
+
+        tmp = J_test(el_base)
+        @fact tmp[1] --> roughly(7.707938341442013, 1e-07)
+        @fact tmp[2] --> roughly(0.5638257266957507, 1e-07)
 
         @fact coeftable(gmm_base).mat[1:2]'  --> [coef(gmm_base) stderr(gmm_base)]
         @fact coeftable(el_base).mat[1:2]'  --> [coef(el_base) stderr(el_base)]
-        
+
     end
     ## context("Instrumental variables large --- verified by asymptotics") do
     ##     Vgmm = vcov(gmm)
     ##     Vmd  = vcov(md)
-        
+
     ##     for j = 1:length(V)
     ##         @fact Vgmm[j] --> roughly(Vmd[j], atol = 0.00001)
-    ##     end    
-    
+    ##     end
+
     ##     Vmd_1 = vcov(md, false, :Unweighted)
     ##     Vmd_2 = vcov(md, false, :Weighted)
 
     ##     for j = 1:length(V)
     ##         @fact Vmd_1[j] --> roughly(Vmd_2[j], atol = 0.00001)
-    ##     end               
+    ##     end
     ## end
 end
 
