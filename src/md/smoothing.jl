@@ -1,6 +1,6 @@
 abstract SmoothingKernel
 
-immutable IdentitySmoother <: SmoothingKernel    
+immutable IdentitySmoother <: SmoothingKernel
     S::Float64
     κ₁::Float64
     κ₂::Float64
@@ -73,5 +73,3 @@ bw(k::SmoothingKernel) = k.S
 
 smooth{T}(g::Array{T, 2}, k::IdentitySmoother) = g
 smooth{T}(g::Array{T, 2}, k::SmoothingKernel) = k.smoother(g)
-
-

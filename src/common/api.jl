@@ -153,7 +153,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:
 	   g_U = g.e.c.hub
 	   u_L = getparLB(g)
 	   u_U = getparUB(g)
-     MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+       MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
@@ -233,9 +233,7 @@ end
 function setmfbounds!(g::MomentBasedEstimator{MDEstimator}, lb::Vector, ub::Vector)
     setmfLB!(g, lb)
     setmfUB!(g, ub)
-
 end
-
 
 ################################################################################
 ## Update initial lb and up on parameters(default -inf, +inf)
@@ -320,13 +318,19 @@ function estimate!(g::MomentBasedEstimator)
     g
 end
 
-function fill_in_results!{S <: MDEstimator}(g::MomentBasedEstimator{S})
-    g.r.status = MathProgBase.status(g.m)
-    n, p, m = size(g)
-    ss = MathProgBase.getsolution(g.m)
-    copy!(g.r.coef, ss[n+1:end])
-    #g.r.mdwts  = ss[1:n]
-    g.r.objval = MathProgBase.getobjval(g.m)
+function fill_in_results!{T <: MDEstimator}(me::MomentBasedEstimator{T})
+    me.r.status = MathProgBase.status(me.m)
+    n, p, m = size(me)
+    ss = MathProgBase.getsolution(me.m)
+    copy!(me.r.coef, ss[n+1:end])
+    ## The ϕ_value is
+    ## equal to 2*objval/(S_T(k1^2/k2))
+    v  = MathProgBase.getobjval(me.m)
+    k1 = κ₁(me)
+    k2 = κ₂(me)
+    S  = bw(me)
+    me.r.objval = 2*k2*v/(S*k1^2)
+    me.status = :Solved
 end
 
 function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
@@ -334,6 +338,7 @@ function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
     n, p, m = size(g)
     copy!(g.r.coef, MathProgBase.getsolution(g.m))
     g.r.objval = MathProgBase.getobjval(g.m)
+    g.status = :Solved
 end
 
 function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
@@ -348,29 +353,20 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
-        ## if g.e.ist.n[1] > 1
-        ##     g.m = model(g.s)
-        ##     loadnonlinearproblem!(g.m, p, 0, getparLB(g), getparUB(g), getmfLB(g),
-        ##                           getmfUB(g), :Min, g.e)
-        ##     setwarmstart!(g.m, theta)
-    ## end
         if g.e.ist.n[1]>1
             g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k)
         end
         MathProgBase.optimize!(g.m)
-        # update theta and W
+
         theta = MathProgBase.getsolution(g.m)
         update!(g.e.ist, theta)
         next!(g.e.ist)
-        ## g.e.ist.n[:] += 1
-        ## g.e.ist.change[:] = maxabs(g.e.ist.prev - theta)
-        ## g.e.ist.prev[:] = theta
         if !(finished(g.e.mgr, g.e.ist))
             MathProgBase.setwarmstart!(g.m, theta)
         end
-        # update iteration state
     end
     fill_in_results!(g)
+    g.status = :Solved
     g
 end
 

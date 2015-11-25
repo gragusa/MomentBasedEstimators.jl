@@ -36,6 +36,8 @@ include("md/mathprogbase.jl")
 include("common/util.jl")
 include("common/post_estimation.jl")
 
+include("common/display.jl")
+
 export GMMEstimator,
        MDEstimator,
        Unconstrained,
@@ -62,5 +64,8 @@ export GMMEstimator,
        setmfUB!,
        setmfbounds!,
        objval,
-       J_test
+       J_test,
+       writemime,
+       TruncatedSmoother,
+       BartlettSmoother
 end

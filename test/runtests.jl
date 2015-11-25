@@ -86,33 +86,42 @@ facts("Testing basic interface") do
         @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
         @fact vcov(gmm_base) --> roughly(vcov(el_base), 0.01)
 
-        @fact vcov(el_base, false, :Unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, false, :Unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, false, :Unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, false, :Unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, false, :Unweighted) --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(el_base, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_base, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_grad, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_full, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(cue_base, false, :unweighted) --> roughly(vcov(gmm_base), 0.001)
 
-        @fact vcov(el_base, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, false, :Weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, false, :Weighted) --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(el_base, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_base, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_grad, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_full, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(cue_base, false, :weighted) --> roughly(vcov(gmm_base), 0.001)
 
         @fact stderr(gmm_base)' --> sqrt(vcov(gmm_base))
 
         @fact stderr(kl_base)' --> sqrt(vcov(kl_base))
         @fact stderr(el_base)' --> sqrt(vcov(el_base))
 
-        @fact stderr(kl_base, false, :Weighted) --> stderr(kl_base)
-        @fact stderr(el_base, false, :Weighted) --> stderr(el_base)
+        @fact stderr(kl_base, false, :weighted) --> stderr(kl_base)
+        @fact stderr(el_base, false, :weighted) --> stderr(el_base)
+
+        @fact vcov(kl_base_truncated)  --> roughly(vcov(kl_base), 0.01)
+        @fact vcov(cue_base_truncated) --> roughly(vcov(cue_base), 0.01)
+
+        @fact J_test(kl_base_truncated)[1] --> roughly(J_test(kl_base)[1], 0.05)
+        @fact J_test(cue_base_truncated)[1]  --> roughly(J_test(cue_base)[1], 0.05)
+        @fact J_test(kl_base_truncated)[2] --> roughly(J_test(kl_base)[2], 0.02)
+        @fact J_test(cue_base_truncated)[2]  --> roughly(J_test(cue_base)[2], 0.02)
+
 
         tmp = J_test(gmm_base)
         @fact tmp[1] --> roughly(7.937738532483664, 1e-07)
         @fact tmp[2] --> roughly(0.5404326890480416, 1e-07)
 
         tmp = J_test(el_base)
-        @fact tmp[1] --> roughly(7.707938341442013, 1e-07)
-        @fact tmp[2] --> roughly(0.5638257266957507, 1e-07)
+        @fact tmp[1] --> roughly(7.825790062416562, 1e-07)
+        @fact tmp[2] --> roughly(0.5517934008321658, 1e-07)
 
         @fact coeftable(gmm_base).mat[1:2]'  --> [coef(gmm_base) stderr(gmm_base)]
         @fact coeftable(el_base).mat[1:2]'  --> [coef(el_base) stderr(el_base)]
@@ -126,8 +135,8 @@ facts("Testing basic interface") do
     ##         @fact Vgmm[j] --> roughly(Vmd[j], atol = 0.00001)
     ##     end
 
-    ##     Vmd_1 = vcov(md, false, :Unweighted)
-    ##     Vmd_2 = vcov(md, false, :Weighted)
+    ##     Vmd_1 = vcov(md, false, :unweighted)
+    ##     Vmd_2 = vcov(md, false, :weighted)
 
     ##     for j = 1:length(V)
     ##         @fact Vmd_1[j] --> roughly(Vmd_2[j], atol = 0.00001)

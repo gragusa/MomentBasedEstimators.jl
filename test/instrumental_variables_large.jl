@@ -18,11 +18,17 @@ estimate!(gmm_one)
 kl_base = MDEstimator(h, [.0])
 estimate!(kl_base)
 
+kl_base_truncated = MDEstimator(h, [.0], kernel = TruncatedSmoother(10))
+estimate!(kl_base_truncated)
+
 el_base = MDEstimator(h, [.0], div = Divergences.ReverseKullbackLeibler())
 estimate!(el_base)
 
 cue_base = MDEstimator(h, [.0], div = Divergences.ChiSquared())
 estimate!(cue_base)
+
+cue_base_truncated = MDEstimator(h, [.0], div = Divergences.ChiSquared(), kernel = TruncatedSmoother(10))
+estimate!(cue_base_truncated)
 
 el_fm = MDEstimator(h, [.0], div = Divergences.FullyModifiedReverseKullbackLeibler(.8, .8))
 estimate!(el_fm)
@@ -41,11 +47,13 @@ Hwsl(θ, p, λ) = zeros(1,1);
 
 kl_ana_grad = MDEstimator(h, [.0], grad = (Dsn, Dws, Dsl));
 estimate!(kl_ana_grad);
-#@time estimate!(kl_ana_grad);
 
 kl_ana_full = MDEstimator(h, [.0], grad = (Dsn, Dws, Dsl, Hwsl));
 estimate!(kl_ana_full);
-#@time estimate!(kl_ana_full);
+
+
+
+
 
 
 
@@ -53,7 +61,7 @@ HAS_KNITRO = true
 try
     cue_knitro = deepcopy(cue_base)
     solver!(cue_knitro, KnitroSolver(hessopt = 6, print_level = 2))
-    estimate!(cue_knitro)    
+    estimate!(cue_knitro)
 catch
     HAS_KNITRO = false
 end
@@ -61,7 +69,3 @@ end
 if HAS_KNITRO
     @fact coef(cue_knitro) --> roughly(coef(cue_base))
 end
-
-
-
-
