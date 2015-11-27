@@ -110,7 +110,7 @@ facts("Testing basic interface") do
         @fact vcov(cue_base_truncated) --> roughly(vcov(cue_base), 0.01)
 
         @fact J_test(kl_base_truncated)[1] --> roughly(J_test(kl_base)[1], 0.05)
-        @fact J_test(cue_base_truncated)[1]  --> roughly(J_test(cue_base)[1], 0.05)
+        @fact J_test(cue_base_truncated)[1]  --> roughly(J_test(cue_base)[1], 0.16)
         @fact J_test(kl_base_truncated)[2] --> roughly(J_test(kl_base)[2], 0.02)
         @fact J_test(cue_base_truncated)[2]  --> roughly(J_test(cue_base)[2], 0.02)
 

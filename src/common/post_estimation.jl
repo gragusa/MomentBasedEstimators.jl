@@ -133,14 +133,10 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bo
     n, p, m = size(e)
     Ω = mfvcov(e, ver)
     G = jacobian(e, ver)
-    V = G'pinv(Ω)*G
-    if robust
-        #H = inv(hessian(e))
-        #V = H'*V*H
-    else
-        V = pinv(G'pinv(Ω)*G)
-    end
-    return scale!(n.^2/(n-p), V)
+    V = G'pinv(Ω)*G/n
+    sc = n/(n-p)
+    V  = robust ? (H = inv(objhessian(e)); H'*V*H) : pinv(V)
+    return scale!(sc, V)
 end
 
 function J_test(e::MomentBasedEstimator)
@@ -164,4 +160,21 @@ function StatsBase.coeftable(e::MomentBasedEstimator)
               ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
               ["x$i" for i = 1:npar(e)],
               4)
+end
+
+function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
+    @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
+    n, _, p = size(m)
+    mdp = MinimumDivergenceProblem(Array(Float64, (n,p)), zeros(p), wlb = m.e.wlb,
+                                   wub = m.e.wub, solver = m.s, div = m.e.div)
+    function obj(theta)
+        mdp.e.mm.S[:] = m.e.mf.s(theta)
+        solve!(mdp)
+        mdp.m.inner.obj_val
+    end
+    H = Calculus.hessian(obj, coef(m))
+    k1 = κ₁(m)
+    k2 = κ₂(m)
+    S  = bw(m)
+    k2*H/(S*k1^2)
 end

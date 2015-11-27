@@ -4,11 +4,7 @@ using ModelsGenerators
 srand(1)
 y, x, z = ModelsGenerators.sim_iv_d01(CP = 100);
 
-g1(theta) = z.*(y-x*theta);
-function g(theta)
-    ϵ = vec(y-x*theta)    
-    scale(ϵ, z)
-end
+g(theta) = z.*(y-x*theta);
 
 gmm_fad = GMMEstimator(g, [.0]);
 estimate!(gmm_fad);
@@ -48,7 +44,7 @@ begin
     Dws(θ, p) = -z'*scale(p,x);
     Dsl(θ, λ) = -x.*(z*λ);
     Hwsl(θ, p, λ) = zeros(1,1);
-    
+
     @time for j = 1:sim
         y, x, z = ModelsGenerators.sim_iv_d01(CP = 100, n = n);
         x = [x x_add];
@@ -58,11 +54,11 @@ begin
         coeff[j] = coef(kl_base)[1];
     end
 end
-    
+
 begin
     srand(1)
     sim = 1000;
-    n = 100
+    n = 1000
     k = 4
     coeff = zeros(sim);
     x_add = randn(n, k-1)
@@ -70,7 +66,7 @@ begin
     Dws(θ, p) = -z'*scale(p,x);
     Dsl(θ, λ) = -x.*(z*λ);
     Hwsl(θ, p, λ) = zeros(k,k);
-    
+
     @time for j = 1:sim
         y, x, z = ModelsGenerators.sim_iv_d01(CP = 100, n = n);
         x = [x x_add];
@@ -101,6 +97,3 @@ end
 
 # W = pinv(GMM.mfvcov(out, HC1()))
 # out = GMM.gmm(g, [.1], W, solver = NLoptSolver(algorithm = :LD_LBFGS))
-
-
-

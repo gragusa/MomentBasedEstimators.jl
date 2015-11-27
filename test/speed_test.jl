@@ -4,29 +4,40 @@ y,x,z=randiv(1000)
 xb = randn(1000,2)
 x = [x xb]
 z = [z xb]
+n, m = size(z)
 
 f(theta) = z.*(y-x*theta);
+
+function f3(theta)
+  g = Array(Float64, n, m)
+  broadcast!(*, g, z, y-x*theta)
+end
+
+@time f3([.1, 0, .1])
+@time f([.1, 0, .1])
+@time f_p([.1, 0, .1])
+
 
 function f_p(theta)
     n, m = size(z)
     v = Array(Float64, n, m)
-    u = (y-x*theta)    
+    u = (y-x*theta)
     @inbounds for k = 1:m
         for j = 1:n
             v[j,k] = z[j,k]*u[j]
-        end 
+        end
     end
     v
 end
 
 
 function f_p!(v, theta)
-    n, m = size(z)    
-    u = (y-x*theta)    
+    n, m = size(z)
+    u = (y-x*theta)
     @inbounds for k = 1:m
         for j = 1:n
             v[j,k] = z[j,k]*u[j]
-        end 
+        end
     end
     v
 end
@@ -71,7 +82,7 @@ uu = dummy(af)
 
 type dummy_
     a::Function
-end 
+end
 
 uuu = dummy_(f)
 

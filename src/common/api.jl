@@ -259,13 +259,11 @@ end
 function setwtsLB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector)
     nobs(g) == length(lb) || error("Dimension error")
     copy!(g.e.wlb, lb)
-
 end
 
 function setwtsUB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, ub::Vector)
     nobs(g) == length(ub) || error("Dimension error")
     copy!(g.e.wub, ub)
-
 end
 
 function setwtsbounds!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
@@ -277,9 +275,7 @@ end
 ## Update initial weighting matrix (default is I(m))
 ################################################################################
 ## TODO: This should depend on the Iteration Manager
-function setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2})
-    copy!(g.e.W , W)
-end
+setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2}) = copy!(g.e.W , W)
 
 ################################################################################
 ## Iteration

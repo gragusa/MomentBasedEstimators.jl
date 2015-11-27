@@ -74,10 +74,5 @@ kl_smt = MDEstimator(h, [1.0, 1.0], kernel = MomentBasedEstimators.TruncatedSmoo
 initialize!(kl_smt)
 estimate!(kl_smt)
 
-
-
 el_iid = MDEstimator(h, [1.0, 1.0], div = Divergences.ReverseKullbackLeibler())
 cu_iid = MDEstimator(h, [1.0, 1.0], div = Divergences.ChiSquared())
-
-
-

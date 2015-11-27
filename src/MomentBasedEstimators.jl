@@ -11,7 +11,7 @@ using KNITRO
 using Base.LinAlg.BLAS
 using Compat
 @reexport using CovarianceMatrices
-
+using Calculus
 import CovarianceMatrices.RobustVariance
 
 const DEFAULT_DIVERGENCE = KullbackLeibler()
@@ -54,6 +54,7 @@ export GMMEstimator,
        estimate!,
        initialize!,
        solver!,
+       solve!,
        setparLB!,
        setparUB!,
        setparbounds!,
@@ -67,5 +68,6 @@ export GMMEstimator,
        J_test,
        writemime,
        TruncatedSmoother,
-       BartlettSmoother
+       BartlettSmoother,
+       MinimumDivergenceProblem
 end

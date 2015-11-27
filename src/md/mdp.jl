@@ -25,13 +25,21 @@ end
 
 function MinimumDivergenceProblem(G::AbstractMatrix,
                                   c::Vector;
+                                  wlb = nothing,
+                                  wub = nothing,
                                   div::Divergence = KullbackLeibler(),
                                   solver = IpoptSolver(print_level = 2),
                                   k::SmoothingKernel = IdentitySmoother())
     n, m = size(G)
     m_eq = length(c)
     @assert m == m_eq "Inconsistent dimension"
-    MinimumDivergenceProblem(G, c, c, m_eq, 0, div, solver, k)
+    if wlb == nothing
+        wlb = zeros(n)
+    end
+    if wub == nothing
+        wub = ones(n)*n
+    end
+    MinimumDivergenceProblem(G, c, c, m_eq, 0, wlb, wub, div, solver, k)
 end
 
 function MinimumDivergenceProblem(G::AbstractMatrix,
@@ -39,12 +47,15 @@ function MinimumDivergenceProblem(G::AbstractMatrix,
                                   H::AbstractMatrix,
                                   lwr::Vector,
                                   upp::Vector;
+                                  wlb = nothing,
+                                  wub = nothing,
                                   div::Divergence = KullbackLeibler(),
                                   solver = IpoptSolver(),
                                   k::SmoothingKernel = IdentitySmoother())
     m_c = length(c); m_lwr = length(lwr); m_upp = length(upp)
     n_g, m_g = size(G)
     n_h, m_h = size(H)
+
     ## TODO: Throw DimensionMismatch errors
     @assert n_g == n_h "Dimensions of G and H are inconsistent"
     @assert m_lwr == m_upp "Dimensions of lower and upper bounds are inconsistent"
@@ -53,7 +64,13 @@ function MinimumDivergenceProblem(G::AbstractMatrix,
     m = m_g + m_lwr
     X_L = [c, lwr]
     X_U = [c, upp]
-    MinimumDivergenceProblem([G H], X_L, X_U, m_g, m_h, div, solver, k)
+    if wlb == nothing
+        wlb = zeros(n_g)
+    end
+    if wub == nothing
+        wub = ones(n_g)*n_g
+    end
+    MinimumDivergenceProblem([G H], X_L, X_U, m_g, m_h, wlb, wub, div, solver, k)
 end
 
 function MinimumDivergenceProblem(X::AbstractMatrix,
@@ -61,6 +78,8 @@ function MinimumDivergenceProblem(X::AbstractMatrix,
                                   X_U::Vector,
                                   m_eq::Int64,
                                   m_ineq::Int64,
+                                  wlb::Vector{Float64},
+                                  wub::Vector{Float64},
                                   div::Divergence,
                                   solver::MathProgBase.SolverInterface.AbstractMathProgSolver,
                                   k::SmoothingKernel)
@@ -68,16 +87,22 @@ function MinimumDivergenceProblem(X::AbstractMatrix,
     model = MathProgBase.model(solver)
     gele  = round(Int, n*(m+1))
     hele  = round(Int, n)
-    u_L   = zeros(n)
-    u_U   = ones(n)*n
+    # u_L   = zeros(n)
+    # u_U   = ones(n)*n
     mm    = MomentMatrix(X, smooth(X, k), X_L, X_U, k, n, m, m_eq, m_ineq)
     e     = MDP(mm, div, gele, hele, solver)
-    MathProgBase.loadnonlinearproblem!(model, n, m+1, u_L, u_U, [X_L; n], [X_U; n], :Min, e)
+    if wlb == nothing
+        wlb = zeros(n)
+    end
+    if wub == nothing
+        wub = ones(n)*n
+    end
+    MathProgBase.loadnonlinearproblem!(model, n, m+1, wlb, wub, [X_L; n], [X_U; n], :Min, e)
     MathProgBase.setwarmstart!(model, ones(n))
     MinimumDivergenceProblem(model, e)
 end
 
-function solve(mdp::MinimumDivergenceProblem)
+function solve!(mdp::MinimumDivergenceProblem)
     MathProgBase.optimize!(mdp.m)
     return mdp
 end
