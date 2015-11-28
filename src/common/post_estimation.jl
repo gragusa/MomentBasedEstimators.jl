@@ -165,12 +165,23 @@ end
 function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
     @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
     n, _, p = size(m)
+    ## In case KNITRO has ms_enable on disactivate it
+    solver = m.s
+    if typeof(solver) <: KnitroSolver
+        opt = Array(Any, length(solver.options))
+        for j in enumerate(solver.options)
+            r = j[1]
+            o = j[2]
+            idx = (:outlev in o[1]) | (:ms_enable in o[1])
+            opt[r] = (o[1], idx ? o[2] : 0)
+        end
+    end
     mdp = MinimumDivergenceProblem(Array(Float64, (n,p)), zeros(p), wlb = m.e.wlb,
                                    wub = m.e.wub, solver = m.s, div = m.e.div)
     function obj(theta)
         mdp.e.mm.S[:] = m.e.mf.s(theta)
         solve!(mdp)
-        mdp.m.inner.obj_val
+        mdp.m.inner.obj_val[1]
     end
     H = Calculus.hessian(obj, coef(m))
     k1 = κ₁(m)
