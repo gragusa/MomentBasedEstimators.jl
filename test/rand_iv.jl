@@ -35,10 +35,12 @@ estimate!(kl_ana_full);
 
 begin
     srand(1)
-    sim = 1000;
+    sim = 100;
     n = 100
     k = 4
     coeff = zeros(sim);
+    statu = Array(Symbol, sim);
+    stder = Array(Float64, sim);
     x_add = randn(n, k-1)
     Dsn(θ)    = -z'x;
     Dws(θ, p) = -z'*scale(p,x);
@@ -52,6 +54,8 @@ begin
         kl_base = MDEstimator(g, zeros(k));
         estimate!(kl_base);
         coeff[j] = coef(kl_base)[1];
+        statu[j] = status(kl_base);
+        stder[j] = stderr(kl_base)[1];
     end
 end
 
