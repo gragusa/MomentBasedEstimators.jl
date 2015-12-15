@@ -6,26 +6,33 @@ abstract IterationManager
 
 immutable OneStepGMM <: IterationManager
     k::RobustVariance
+    demean::Bool
 end
 
 immutable TwoStepGMM <: IterationManager
     k::RobustVariance
+    demean::Bool
 end
 
 immutable IterativeGMM <: IterationManager
     k::RobustVariance
+    demean::Bool
     tol::Float64
     maxiter::Int
 end
 
 # kwarg constructors with default values
-OneStepGMM(;k::RobustVariance=HC0()) = OneStepGMM(k)
+OneStepGMM(;k::RobustVariance=HC0(), demean::Bool = false) = OneStepGMM(k, demean)
+TwoStepGMM(;k::RobustVariance=HC0(), demean::Bool = false) = TwoStepGMM(k, demean)
 
-TwoStepGMM(;k::RobustVariance=HC0()) = TwoStepGMM(k)
+OneStepGMM(k::RobustVariance) = OneStepGMM(k, false)
+TwoStepGMM(k::RobustVariance) = TwoStepGMM(k, false)
 
-function IterativeGMM(;k::RobustVariance=HC0(), tol::Float64=1e-12,
+
+
+function IterativeGMM(;k::RobustVariance=HC0(), demean::Bool = false, tol::Float64=1e-12,
                        maxiter::Int=500)
-    IterativeGMM(k, tol, maxiter)
+    IterativeGMM(k, demean, tol, maxiter)
 end
 
 type IterationState
