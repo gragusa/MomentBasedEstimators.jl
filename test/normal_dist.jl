@@ -29,10 +29,13 @@ using Distributions
 srand(42)
 x = rand(Normal(4, 2), 1000)
 
+## Ugly, but see ForwardDiff.j issue #78
+## https://github.com/JuliaDiff/ForwardDiff.jl/issues/78
+
 function h(θ)
-    m1 = θ[1] - x
-    m2 = θ[2]^2 - (x - θ[1]).^2
-    m3 = x.^3 - θ[1].*(θ[1]^2 + 3*θ[2]^2)
+    m1 = [θ[1]] .- x
+    m2 = [θ[2]].^2 .- (x .- [θ[1]]).^2
+    m3 = x.^3 .- [θ[1]].*([θ[1]].^2 .+ 3*[θ[2]].^2)
     return [m1 m2 m3]
 end
 
@@ -45,7 +48,6 @@ hlb = [0.]
 hub = [0.]
 
 cstep_1 = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
-
 
 step_2_hac = GMMEstimator(h, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, QuadraticSpectralKernel(0.91469)));
 
