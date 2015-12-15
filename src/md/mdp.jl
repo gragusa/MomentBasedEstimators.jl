@@ -84,7 +84,7 @@ function MinimumDivergenceProblem(X::AbstractMatrix,
                                   solver::MathProgBase.SolverInterface.AbstractMathProgSolver,
                                   k::SmoothingKernel)
     n, m  = size(X)
-    model = MathProgBase.model(solver)
+    model = MathProgBase.NonlinearModel(solver)
     gele  = round(Int, n*(m+1))
     hele  = round(Int, n)
     # u_L   = zeros(n)
@@ -97,7 +97,7 @@ function MinimumDivergenceProblem(X::AbstractMatrix,
     if wub == nothing
         wub = ones(n)*n
     end
-    MathProgBase.loadnonlinearproblem!(model, n, m+1, wlb, wub, [X_L; n], [X_U; n], :Min, e)
+    MathProgBase.loadproblem!(model, n, m+1, wlb, wub, [X_L; n], [X_U; n], :Min, e)
     MathProgBase.setwarmstart!(model, ones(n))
     MinimumDivergenceProblem(model, e)
 end
