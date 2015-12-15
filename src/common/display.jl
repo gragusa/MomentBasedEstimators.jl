@@ -3,7 +3,7 @@
 # --------------- #
 
 function show_extra{T <: GMMEstimator}(me::MomentBasedEstimator{T})
-    j, p = J_test(me, me.e.mgr.k)
+    j, p = J_test(me)
     "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
 end
 
