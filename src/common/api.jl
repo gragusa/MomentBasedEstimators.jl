@@ -125,7 +125,7 @@ function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weig
 	g_U = getmfUB(g)
 	u_L = [getwtsLB(g); getparLB(g)]
 	u_U = [getwtsUB(g); getparUB(g)]
-	MathProgBase.loadnonlinearproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
+	MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
 	MathProgBase.setwarmstart!(g.m, ξ₀)
 	g.status = :Initialized
 end
@@ -139,7 +139,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T
 	   g_U = Float64[]
 	   u_L = getparLB(g)
 	   u_U = getparUB(g)
-     MathProgBase.loadnonlinearproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
+     MathProgBase.loadproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
@@ -153,7 +153,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:
 	   g_U = g.e.c.hub
 	   u_L = getparLB(g)
 	   u_U = getparUB(g)
-       MathProgBase.loadnonlinearproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+       MathProgBase.loadproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
@@ -214,7 +214,7 @@ end
 ################################################################################
 function solver!(g::MomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     g.s = s
-    g.m = deepcopy(MathProgBase.model(s))
+    g.m = deepcopy(MathProgBase.NonlinearModel(s))
 end
 
 ################################################################################
@@ -349,7 +349,7 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
-        if g.e.ist.n[1]>1
+        if g.e.ist.n[1]>1            
             g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k)
         end
         MathProgBase.optimize!(g.m)

@@ -117,15 +117,13 @@ end
 
 ## Basic MomentBasedEstimator constructor
 function MomentBasedEstimator(e::GenericMomentBasedEstimator)
-    MomentBasedEstimator(e,
-        MomentBasedEstimatorResults(
-            :Unsolved,
-            0.0,
-            Array(Float64, npar(e)),
-            Array(Float64, npar(e), npar(e))),
-        DEFAULT_SOLVER(e),
-        model(DEFAULT_SOLVER(e)),
-        :Uninitialized)
+    MomentBasedEstimator(e, MomentBasedEstimatorResults(
+                                                        :Unsolved, 0.0,
+                                                        Array(Float64, npar(e)),
+                                                        Array(Float64, npar(e), npar(e))),
+                         DEFAULT_SOLVER(e),
+                         MathProgBase.NonlinearModel(DEFAULT_SOLVER(e)),
+                         :Uninitialized)
 end
 
 setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
