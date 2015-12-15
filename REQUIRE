@@ -1,7 +1,7 @@
-julia 0.4-
+julia 0.4
 StatsBase 0.6.10+
 PDMats 0.3+
-ForwardDiff 
+ForwardDiff
 MathProgBase 
 Reexport
 Distributions
