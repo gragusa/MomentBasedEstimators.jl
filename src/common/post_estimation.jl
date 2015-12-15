@@ -162,22 +162,28 @@ function StatsBase.coeftable(e::MomentBasedEstimator)
               4)
 end
 
-function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
-    @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
-    n, _, p = size(m)
-    ## In case KNITRO has ms_enable on disactivate it
-    solver = m.s
-    if typeof(solver) <: KnitroSolver
-        opt = Array(Any, length(solver.options))
-        for j in enumerate(solver.options)
+fixsolver!(s::Ipopt.IpoptSolver) = s
+
+function fixsolver!(s::KnitroSolver)
+        opt = Array(Any, length(s.options))
+        for j in enumerate(s.options)
             r = j[1]
             o = j[2]
             idx = (:outlev in o[1]) | (:ms_enable in o[1])
             opt[r] = (o[1], idx ? o[2] : 0)
         end
-    end
+    soptions[:] = opt
+end
+
+function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
+    @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
+    n, _, p = size(m)
+    ## In case KNITRO has ms_enable on disactivate it
+    solver = m.s
+    fixsolver!(solver)
+
     mdp = MinimumDivergenceProblem(Array(Float64, (n,p)), zeros(p), wlb = m.e.wlb,
-                                   wub = m.e.wub, solver = m.s, div = m.e.div)
+                                   wub = m.e.wub, solver = solver, div = m.e.div)
     function obj(theta)
         mdp.e.mm.S[:] = m.e.mf.s(theta)
         solve!(mdp)
@@ -189,3 +195,70 @@ function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
     S  = bw(m)
     k2*H/(S*k1^2)
 end
+
+function Gadfly.plot{T <: MDEstimator}(m::MomentBasedEstimator{T}; xc = nothing, yc = nothing,  na...)
+    n, p, k = size(m)
+    @assert p <= 2 "no plotting for high dimensional MDEstimators"
+    solver = m.s
+    fixsolver!(solver)
+    mdp = MinimumDivergenceProblem(Array(Float64, (n, k)), zeros(k), wlb = m.e.wlb,
+                                   wub = m.e.wub, solver = solver, div = m.e.div)
+    
+    cf = coef(m)
+    se = stderr(m)
+    
+    xc = xc == nothing ? collect(cf[1]-5*se[1]:10*se[1]/20:cf[1]+5*se[1]) : xc
+    yc = yc == nothing && p > 1 ? collect(cf[2]-5*se[2]:10*se[2]/20:cf[2]+5*se[2]) : yc
+    
+    if p == 1
+        objv = Array(Float64, length(xc))
+        for j in enumerate(xc)
+            r = j[1]
+            θ = j[2]
+            mdp.e.mm.S[:] = m.e.mf.s(θ)
+            solve!(mdp)
+            if mdp.m.inner.status == 0
+                v = mdp.m.inner.obj_val[1]
+            else
+                v = NaN
+            end
+            k1 = κ₁(m)
+            k2 = κ₂(m)
+            S  = bw(m)
+            objv[r] = k2*v/(S*k1^2)
+        end
+        plot(x = xc, y = objv, Geom.line,
+             Guide.xlabel("θ"), Guide.ylabel("P(θ)"))
+    else
+        objv = Array(Float64, (length(xc), length(yc)))
+        for j in enumerate(yc)
+            i  = j[1]
+            θ₂ = j[2]
+            for h in enumerate(xc)
+                s  = h[1]
+                θ₁ = h[2]
+                mdp.e.mm.S[:] = m.e.mf.s([θ₁; θ₂])
+                solve!(mdp)
+                if mdp.m.inner.status == 0
+                    v = mdp.m.inner.obj_val[1]
+                else
+                    v = NaN
+                end
+                k1 = MomentBasedEstimators.κ₁(m)
+                k2 = MomentBasedEstimators.κ₂(m)
+                S  = MomentBasedEstimators.bw(m)
+                objv[s,i] = k2*v/(S*k1^2)
+            end
+        end
+        plot(z = objval, Geom.contour)
+        # fig = figure(figsize=(8,6))
+        # ax = fig[:gca](projection="3d")
+        # xgrid, ygrid = meshgrid(xc, yc)
+        # ax[:plot_surface](xgrid, ygrid, objv,
+        #                   rstride=2, cstride=2,
+        #                   cmap=ColorMap("magma"),
+        #                   alpha=0.7, linewidth=0.25)
+        # ax[:contour](xgrid, ygrid, objv, zdir = "z")
+    end
+end
+
