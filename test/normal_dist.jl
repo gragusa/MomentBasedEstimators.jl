@@ -29,6 +29,7 @@ using Distributions
 srand(42)
 x = rand(Normal(4, 2), 1000)
 
+## FIXME: 
 ## Ugly, but see ForwardDiff.j issue #78
 ## https://github.com/JuliaDiff/ForwardDiff.jl/issues/78
 
