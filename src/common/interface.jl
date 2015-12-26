@@ -96,17 +96,6 @@ type Constrained <: Constraint
     nc::Int64  ## Number of constraints: row of h(θ)
 end
 
-type DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
-    s::MathProgBase.AbstractMathProgSolver
-end
-
-function DEFAULT_SOLVER(::GMMEstimator) 
-  IpoptSolver(hessian_approximation = "limited-memory", print_level=2)
-end
-
-DEFAULT_SOLVER(::MDEstimator)  = IpoptSolver(print_level=2)
-
-
 type MomentBasedEstimator{T<:GenericMomentBasedEstimator}
     e::T
     r::MomentBasedEstimatorResults
@@ -146,3 +135,14 @@ end
 function make_ana_mom_fun(::Type{MDEstimator}, g::Function, ∇g::Tuple{Function, Function, Function, Function})
     AnaFullMomFun(g, g, ∇g..., IdentitySmoother())
 end
+
+
+type DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
+    s::MathProgBase.AbstractMathProgSolver
+end
+
+function DEFAULT_SOLVER(::GMMEstimator) 
+  IpoptSolver(hessian_approximation = "limited-memory", print_level=2, sb = "yes")
+end
+
+DEFAULT_SOLVER(::MDEstimator)  = IpoptSolver(print_level=2, sb = "yes")
