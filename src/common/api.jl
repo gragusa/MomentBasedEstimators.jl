@@ -1,4 +1,3 @@
-
 startingval(e::GenericMomentBasedEstimator) = e.x0
 startingval(g::MomentBasedEstimator) = startingval(g.e)
 
@@ -45,14 +44,14 @@ function GMMEstimator(f::Function, ϑ::Vector;
     ub  = [+Inf for j=1:p]
     nf  = Float64[]
     ni  = 0::Int64
-
+    
     if grad == nothing
         mf  = make_fad_mom_fun(g, IdentitySmoother())
     else
         ∇f(ϑ) = data == nothing ? grad(ϑ) : grad(ϑ, data)
         mf  = make_ana_mom_fun(GMMEstimator, g, ∇f)
     end
-
+    
     MomentBasedEstimator(GMMEstimator(mf, constraints, ϑ, lb, ub, nf, nf,
                                       mgr, IterationState([1], [10.0], ϑ), W,
                                       w, ni, ni, n, p, m))
@@ -73,21 +72,20 @@ function MDEstimator(f::Function, ϑ::Vector;
     n, m, p = (size(g₀)..., length(ϑ))
     ## Weighting
     w = wts == nothing ? Unweighted() : Weighted(float(wts))
-
-    ## Set Default bounds
-    # Bounds on ϑ
+    #=
+    Set Default bounds
+    =#
+    
+    ## -- Bounds on ϑ           -- ##    
     lb  = [-Inf for j=1:p]
     ub  = [+Inf for j=1:p]
-    # Bounds on mdweights
+    ## -- Bounds on mdweights   -- ##
     wlb = zeros(Float64, n)
     wub = ones(Float64, n)*n
-    # Bounds on constraint
+    ## -- Bounds on constraints -- ##
     glb = [zeros(m); n];
     gub = [zeros(m); n];
-    # ?
     ni  = 0::Int64
-    ##
-
     if grad == nothing
         mf  = make_fad_mom_fun(g, kernel)
     else
@@ -103,35 +101,35 @@ function MDEstimator(f::Function, ϑ::Vector;
         mf  = make_ana_mom_fun(MDEstimator, g, grad)
     end
 
-    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), ϑ, lb, ub, glb, gub, wlb, wub,
-                                     div, w, ni, ni, n, p, m))
+    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), ϑ, lb, ub, glb, gub,
+                                     wlb, wub, div, w, ni, ni, n, p, m))
 end
 
 ################################################################################
 ## Solve methods
 ################################################################################
 function solve!(g::MomentBasedEstimator)
-	if status(g) == :Uninitialized
-		initialize!(g)
-	end
+	   if status(g) == :Uninitialized
+		      initialize!(g)
+	   end
 end
 
 function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
-	n, p, m = size(g)
-	ξ₀ = [ones(n); startingval(g)]
-	g.e.gele = Int((n+p)*(m+1)-p)
-	g.e.hele = Int(n*p + n + (p+1)*p/2)
-	g_L = getmfLB(g)
-	g_U = getmfUB(g)
-	u_L = [getwtsLB(g); getparLB(g)]
-	u_U = [getwtsUB(g); getparUB(g)]
-	MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
-	MathProgBase.setwarmstart!(g.m, ξ₀)
-	g.status = :Initialized
+	   n, p, m = size(g)
+	   ξ₀ = [ones(n); startingval(g)]
+	   g.e.gele = Int((n+p)*(m+1)-p)
+	   g.e.hele = Int(n*p + n + (p+1)*p/2)
+	   g_L = getmfLB(g)
+	   g_U = getmfUB(g)
+	   u_L = [getwtsLB(g); getparLB(g)]
+	   u_U = [getwtsUB(g); getparUB(g)]
+	   MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
+	   MathProgBase.setwarmstart!(g.m, ξ₀)
+	   g.status = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
-	   n, p, m = size(g)
+    n, p, m = size(g)
 	   ξ₀ = startingval(g)
 	   g.e.gele = @compat Int(p)
 	   g.e.hele = @compat Int(2*p)
@@ -139,13 +137,13 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T
 	   g_U = Float64[]
 	   u_L = getparLB(g)
 	   u_U = getparUB(g)
-     MathProgBase.loadproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
+    MathProgBase.loadproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
-	   n, p, m = size(g)
+    n, p, m = size(g)
 	   ξ₀ = MomentBasedEstimators.startingval(g)
 	   g.e.gele = @compat Int(g.e.c.nc*p)
 	   g.e.hele = @compat Int(0)
@@ -153,7 +151,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:
 	   g_U = g.e.c.hub
 	   u_L = getparLB(g)
 	   u_U = getparUB(g)
-       MathProgBase.loadproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
+    MathProgBase.loadproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
 	   g.status = :Initialized
 end
@@ -174,12 +172,12 @@ getwtsUB{M, V, T, S}(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) = g.e.wub
 ## Set constraint on parameters
 ################################################################################
 function check_constraint_sanity(k, x0, h::Function, hlb, hub)
-	h0 = h(x0); nc = length(h0)
-	typeof(h0)  <: Vector{Float64} || error("Constraint function must be ::Vector{Float64}")
-	nc == length(hub) && nc == length(hlb) || error("Constraint bounds of wrong dimension")
-	typeof(hlb) <: Vector{Float64} || (hlb = float(hlb))
-	typeof(hub) <: Vector{Float64} || (hub = float(hub))
-	(hlb, hub, nc)
+	   h0 = h(x0); nc = length(h0)
+	   typeof(h0)  <: Vector{Float64} || error("Constraint function must be ::Vector{Float64}")
+	   nc == length(hub) && nc == length(hlb) || error("Constraint bounds of wrong dimension")
+	   typeof(hlb) <: Vector{Float64} || (hlb = float(hlb))
+	   typeof(hub) <: Vector{Float64} || (hub = float(hub))
+	   (hlb, hub, nc)
 end
 
 ## This return a constrained version of MomentBasedEstimator
@@ -205,7 +203,7 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
                       g.e.gele,
                       g.e.hele,
                       size(g)...)
-
+    
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end
 
@@ -221,13 +219,13 @@ end
 ## Update lb and up on g(θ) default: (0,...,0)
 ################################################################################
 function setmfLB!(g::MomentBasedEstimator{MDEstimator}, lb::Vector)
-	nmom(g) == length(lb) || error("Dimension error")
-	g.e.glb[:] = lb
+	   nmom(g) == length(lb) || error("Dimension error")
+	   g.e.glb[:] = lb
 end
 
 function setmfUB!(g::MomentBasedEstimator{MDEstimator}, ub::Vector)
-	nmom(g) == length(ub) || error("Dimension error")
-	g.e.glb[:] = ub
+	   nmom(g) == length(ub) || error("Dimension error")
+	   g.e.glb[:] = ub
 end
 
 function setmfbounds!(g::MomentBasedEstimator{MDEstimator}, lb::Vector, ub::Vector)
@@ -249,8 +247,8 @@ function setparUB!{T}(g::MomentBasedEstimator{T}, ub::Vector)
 end
 
 function setparbounds!{T}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
-	setparLB!(g, lb)
-	setparUB!(g, ub)
+	   setparLB!(g, lb)
+	   setparUB!(g, ub)
 end
 
 ################################################################################
@@ -349,8 +347,8 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
     reset_iteration_state!(g)
     n, p, m = size(g)
     while !(finished(g.e.mgr, g.e.ist))
-        if g.e.ist.n[1]>1            
-            g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k)
+        if g.e.ist.n[1]>1
+            g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k, g.e.mgr.demean)
         end
         MathProgBase.optimize!(g.m)
 
@@ -376,22 +374,24 @@ end
 reset_iteration_state!(g::MomentBasedEstimator) =
     g.e.ist = deepcopy(IterationState([1], [10.0], startingval(g)))
 
-function optimal_W(mf::MomentFunction, theta::Vector, k::RobustVariance)
-    h = mf.s(theta)
+
+function optimal_W(g::Array{Float64, 2}, theta::Vector, k::RobustVariance, demean::Bool)
+    h = demean ? g .- mean(g, 1) : g
     n = size(h, 1)
     S = vcov(h, k) * n
-    W = pinv(S)
-    W
+    pinv(S)
 end
 
-function optimal_W(mf::Function, theta::Vector, k::RobustVariance)
-    h = mf(theta)
-    n = size(h, 1)
-    S = vcov(h, k) * n
-    W = pinv(S)
-    W
+function optimal_W(mf::MomentFunction, theta::Vector, k::RobustVariance, demean::Bool)
+    g = mf.s(theta)
+    optimal_W(g, theta, k, demean)
 end
 
-function optimal_W(e::MomentBasedEstimator, k::RobustVariance)
-    optimal_W(e.e.mf, coef(e), k)
+function optimal_W(mf::Function, theta::Vector, k::RobustVariance, demean::Bool)
+    g = mf(theta)
+    optimal_W(g, theta, k, demean)
+end
+
+function optimal_W(e::MomentBasedEstimator, k::RobustVariance, demean::Bool = false)
+    optimal_W(e.e.mf, coef(e), k, demean)
 end
