@@ -2,7 +2,9 @@
 # Post-estimation tools #
 # --------------------- #
 
-## Methods
+# Post-estimation methods           #
+#-----------------------------------#
+
 StatsBase.coef{T}(e::MomentBasedEstimator{T}) = e.r.coef
 status{T}(e::MomentBasedEstimator{T}) = e.r.status
 objvalstatus{T}(e::MomentBasedEstimator{T}) = e.r.objval
@@ -22,6 +24,9 @@ function mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ver::Symbol = :
     ver == :shrunk ? shrinkweight(p, n) : p
 end
 
+# jacobian of moment function       #
+#-----------------------------------#
+
 function jacobian{T <: GMMEstimator}(e::MomentBasedEstimator{T})
     s(θ) = vec(sum(e.e.mf.s(θ), 1))
     θ = coef(e)
@@ -40,6 +45,9 @@ end
 
 jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}) = jacobian(e, :weighted)
 
+# smoothing of the moment function  #
+#-----------------------------------#
+
 κ₂{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.e.mf.kern.κ₂
 κ₁{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.e.mf.kern.κ₁
 κ₃{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.e.mf.kern.κ₃
@@ -50,8 +58,8 @@ smoothing_kernel{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.e.mf.kern
 
 iteration_manager{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.mgr
 
-# mfvcov(e::MomentBasedEstimator, k::RobustVariance) = vcov(momentfunction(e), k)
-# mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}) = vcov(momentfunction(e), smoothing_kernel(e))
+# covariance of the moment function #
+#-----------------------------------#
 
 function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ver::Symbol)
     mf = momentfunction(e)
@@ -73,10 +81,8 @@ mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance) = vcov(
 
 initial_weighting{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.W[end]
 
-################################################################
-#### GMM vcov/stderr
-####
-################################################################
+# covariance of the estimator       #
+#-----------------------------------#
 
 StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(e, smoothing_kernel(e), iteration_manager(e))
 
@@ -108,26 +114,6 @@ function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::Robust
     vcov(e, k, iteration_manager(e))
 end
 
-function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T})
-    sqrt(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
-end
-
-function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
-    sqrt(diag(vcov(e, mgr)))
-end
-
-function StatsBase.stderr{T}(e::MomentBasedEstimator{T}, k::RobustVariance)
-    sqrt(diag(vcov(e, k)))
-end
-
-function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T})
-    sqrt(diag(vcov(e)))
-end
-
-function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
-    sqrt(diag(vcov(e, robust, ver)))
-end
-
 StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T})  = vcov(e, false, :weighted)
 function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
     n, p, m = size(e)
@@ -139,41 +125,8 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bo
     return scale!(sc, V)
 end
 
-function J_test(e::MomentBasedEstimator)
-    g = mean(momentfunction(e), 1)
-    S = pinv(mfvcov(e))
-    j = (nobs(e)*(g*S*g'))[1]
-    p = df(e) > 0 ? ccdf(Chisq(df(e)), j) : NaN
-    # sometimes p is garbage, so we clamp it to be within reason
-    return j, clamp(p, eps(), Inf)
-end
-
-df{T}(e::MomentBasedEstimator{T}) = nmom(e) - npar(e)
-z_stats{T}(e::MomentBasedEstimator{T}) = coef(e) ./ stderr(e)
-p_values{T}(e::MomentBasedEstimator{T}) = 2*ccdf(Normal(), z_stats(e))
-
-function StatsBase.coeftable(e::MomentBasedEstimator)
-    cc = coef(e)
-    se = stderr(e)
-    zz = z_stats(e)
-    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
-              ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
-              ["x$i" for i = 1:npar(e)],
-              4)
-end
-
-fixsolver!(s::Ipopt.IpoptSolver) = s
-
-function fixsolver!(s::KnitroSolver)
-        opt = Array(Any, length(s.options))
-        for j in enumerate(s.options)
-            r = j[1]
-            o = j[2]
-            idx = (:outlev in o[1]) | (:ms_enable in o[1])
-            opt[r] = (o[1], idx ? o[2] : 0)
-        end
-    soptions[:] = opt
-end
+# hessian of the MD objective       #
+#-----------------------------------#
 
 function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
     @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
@@ -194,6 +147,73 @@ function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
     k2 = κ₂(m)
     S  = bw(m)
     k2*H/(S*k1^2)
+end
+
+# standard error of the estimator   #
+#-----------------------------------#
+
+function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T})
+    sqrt(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
+end
+
+function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
+    sqrt(diag(vcov(e, mgr)))
+end
+
+function StatsBase.stderr{T}(e::MomentBasedEstimator{T}, k::RobustVariance)
+    sqrt(diag(vcov(e, k)))
+end
+
+function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T})
+    sqrt(diag(vcov(e)))
+end
+
+function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}, robust::Bool, ver::Symbol)
+    sqrt(diag(vcov(e, robust, ver)))
+end
+
+# J test                            #
+#-----------------------------------#
+
+function J_test(e::MomentBasedEstimator)
+    g = mean(momentfunction(e), 1)
+    S = pinv(mfvcov(e))
+    j = (nobs(e)*(g*S*g'))[1]
+    p = df(e) > 0 ? ccdf(Chisq(df(e)), j) : NaN
+    # sometimes p is garbage, so we clamp it to be within reason
+    return j, clamp(p, eps(), Inf)
+end
+
+df{T}(e::MomentBasedEstimator{T}) = nmom(e) - npar(e)
+z_stats{T}(e::MomentBasedEstimator{T}) = coef(e) ./ stderr(e)
+p_values{T}(e::MomentBasedEstimator{T}) = 2*ccdf(Normal(), z_stats(e))
+
+# coef table                        #
+#-----------------------------------#
+
+function StatsBase.coeftable(e::MomentBasedEstimator)
+    cc = coef(e)
+    se = stderr(e)
+    zz = z_stats(e)
+    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
+              ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
+              ["x$i" for i = 1:npar(e)],
+              4)
+end
+
+# hack: fix solver                  #
+#-----------------------------------#
+
+fixsolver!(s::Ipopt.IpoptSolver) = s
+
+function fixsolver!(s::KnitroSolver)
+    opt = Array(Any, length(s.options))
+    for j in enumerate(s.options)
+        r = j[1]; o = j[2]
+        idx = (:outlev in o[1]) | (:ms_enable in o[1])
+        opt[r] = (o[1], idx ? o[2] : 0)
+    end
+    soptions[:] = opt
 end
 
 # function Gadfly.plot{T <: MDEstimator}(m::MomentBasedEstimator{T}; xc = nothing, yc = nothing,  na...)
