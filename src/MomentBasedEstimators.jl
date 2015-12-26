@@ -13,8 +13,9 @@ using Compat
 @reexport using CovarianceMatrices
 using Calculus
 import CovarianceMatrices.RobustVariance
-using Gadfly
+
 const DEFAULT_DIVERGENCE = KullbackLeibler()
+
 
 ## Common
 include("md/smoothing.jl")
