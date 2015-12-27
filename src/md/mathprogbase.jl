@@ -64,7 +64,7 @@ function MathProgBase.eval_jac_g{M<:FADMomFun, V, S<:Unconstrained, T<:Unweighte
         elseif (j>m && i<=n)
             J[i+(j-1)*(n+k)] = 1.0
         end
-    end
+     end
 end
 
 function MathProgBase.eval_jac_g{M <: AnaMomFun, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V,S,T}, J, u)
@@ -83,7 +83,7 @@ function MathProgBase.eval_jac_g{M <: AnaMomFun, V, S<:Unconstrained, T<:Unweigh
         end
     end
 end
-    
+
 function MathProgBase.hesslag_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V, S, T})
     n, k, m = size(e)
     rows = Array(Int64, e.hele)
@@ -124,7 +124,7 @@ function MathProgBase.eval_hesslag{M<:FADMomFun, V, S<:Unconstrained, T}(e::MDEs
         Divergences.hessian!(H, e.div, u[1:n])
         @simd for j in 1:n
             @inbounds H[j] = σ*H[j]
-        end 
+        end
     end
     sl(θ)  = e.mf.s(θ)*λ[1:m]
     wsl(θ) = (p'*e.mf.s(θ)*λ[1:m])[1]
@@ -144,14 +144,14 @@ function MathProgBase.eval_hesslag{M<:AnaGradMomFun, V, S<:Unconstrained, T}(e::
         Divergences.hessian!(H, e.div, u[1:n])
         @simd for j in 1:n
             @inbounds H[j] = σ*H[j]
-        end 
+        end
     end
     Dsl  = e.mf.Dsl(θ, λ[1:m])
     wsl(θ) = (p'*e.mf.s(θ)*λ[1:m])[1]
     @inbounds H[n+1:n*k+n] = Dsl'
     @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ, chunk_size = length(θ)))
 end
-    
+
 function MathProgBase.eval_hesslag{M<:AnaFullMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)
     n, k, m = size(e)
     p = u[1:n]
@@ -164,7 +164,7 @@ function MathProgBase.eval_hesslag{M<:AnaFullMomFun, V, S<:Unconstrained, T}(e::
         Divergences.hessian!(H, e.div, u[1:n])
         @simd for j in 1:n
             @inbounds H[j] = σ*H[j]
-        end 
+        end
     end
     Dsl  = e.mf.Dsl(θ, λ[1:m])
     Hwsl = e.mf.Hwsl(θ, p, λ[1:m])

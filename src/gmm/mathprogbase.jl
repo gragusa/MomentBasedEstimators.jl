@@ -13,7 +13,7 @@ end
 MathProgBase.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
 
 function MathProgBase.eval_f(e::GMMEstimator, theta)
-    idx = e.ist.n[1]   
+    idx = e.ist.n[1]
     gn = vec(sum(e.mf.s(theta), 1))
     Base.dot(gn, e.W[idx]*gn)
 end
@@ -49,8 +49,8 @@ function MathProgBase.jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, 
     n, k, m = size(e)
     ## The jacobian is a nc x k
     rows = Array(Int64, e.gele)
-    cols = Array(Int64, e.gele)    
-    for j = 1:nc, r = 1:k        
+    cols = Array(Int64, e.gele)
+    for j = 1:nc, r = 1:k
         @inbounds rows[r+(j-1)*k] = j
         @inbounds cols[r+(j-1)*k] = r
     end

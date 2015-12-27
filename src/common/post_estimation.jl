@@ -223,13 +223,13 @@ end
 #     fixsolver!(solver)
 #     mdp = MinimumDivergenceProblem(Array(Float64, (n, k)), zeros(k), wlb = m.e.wlb,
 #                                    wub = m.e.wub, solver = solver, div = m.e.div)
-    
+
 #     cf = coef(m)
 #     se = stderr(m)
-    
+
 #     xc = xc == nothing ? collect(cf[1]-5*se[1]:10*se[1]/20:cf[1]+5*se[1]) : xc
 #     yc = yc == nothing && p > 1 ? collect(cf[2]-5*se[2]:10*se[2]/20:cf[2]+5*se[2]) : yc
-    
+
 #     if p == 1
 #         objv = Array(Float64, length(xc))
 #         for j in enumerate(xc)
@@ -281,4 +281,3 @@ end
 #         # ax[:contour](xgrid, ygrid, objv, zdir = "z")
 #     end
 # end
-

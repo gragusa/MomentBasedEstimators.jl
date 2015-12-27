@@ -21,7 +21,7 @@ objval(e::MomentBasedEstimator) = e.r.objval
 ################################################################################
 ## Constructor with function and x0
 ################################################################################
-function GMMEstimator(f::Function, ϑ::Vector;
+function GMMEstimator(f::Function, theta::Vector;
                       grad = nothing,
                       data = nothing,
                       initialW = nothing,
@@ -29,10 +29,10 @@ function GMMEstimator(f::Function, ϑ::Vector;
                       mgr::IterationManager = TwoStepGMM(),
                       constraints = Unconstrained())
     ## Set Moment Function
-    g(ϑ) = data == nothing ? f(ϑ) : f(ϑ, data)
+    g(theta) = data == nothing ? f(theta) : f(theta, data)
     ## Evaluate Moment Function
-    g₀ = g(ϑ)
-    n, m, p = (size(g₀)..., length(ϑ))
+    g₀ = g(theta)
+    n, m, p = (size(g₀)..., length(theta))
     ## Initial Weighting Matrix
     W₀ = initialW == nothing ? eye(Float64, m) : initialW
     W  = setW0(mgr, m);
@@ -44,39 +44,39 @@ function GMMEstimator(f::Function, ϑ::Vector;
     ub  = [+Inf for j=1:p]
     nf  = Float64[]
     ni  = 0::Int64
-    
+
     if grad == nothing
         mf  = make_fad_mom_fun(g, IdentitySmoother())
     else
-        ∇f(ϑ) = data == nothing ? grad(ϑ) : grad(ϑ, data)
+        ∇f(theta) = data == nothing ? grad(theta) : grad(theta, data)
         mf  = make_ana_mom_fun(GMMEstimator, g, ∇f)
     end
-    
-    MomentBasedEstimator(GMMEstimator(mf, constraints, ϑ, lb, ub, nf, nf,
-                                      mgr, IterationState([1], [10.0], ϑ), W,
+
+    MomentBasedEstimator(GMMEstimator(mf, constraints, theta, lb, ub, nf, nf,
+                                      mgr, IterationState([1], [10.0], theta), W,
                                       w, ni, ni, n, p, m))
 end
 
 typealias GradTuple Union{Void, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
 
 
-function MDEstimator(f::Function, ϑ::Vector;
+function MDEstimator(f::Function, theta::Vector;
                      grad::GradTuple = nothing,
                      data = nothing, wts = nothing,
                      div::Divergence = DEFAULT_DIVERGENCE,
                      kernel::SmoothingKernel = IdentitySmoother())
     ## Set Moment Function
-    g(ϑ) = data == nothing ? f(ϑ) : f(ϑ, data)
+    g(theta) = data == nothing ? f(theta) : f(theta, data)
     ## Evaluate Moment Function
-    g₀ = g(ϑ)
-    n, m, p = (size(g₀)..., length(ϑ))
+    g₀ = g(theta)
+    n, m, p = (size(g₀)..., length(theta))
     ## Weighting
     w = wts == nothing ? Unweighted() : Weighted(float(wts))
     #=
     Set Default bounds
     =#
-    
-    ## -- Bounds on ϑ           -- ##    
+
+    ## -- Bounds on theta           -- ##
     lb  = [-Inf for j=1:p]
     ub  = [+Inf for j=1:p]
     ## -- Bounds on mdweights   -- ##
@@ -93,15 +93,15 @@ function MDEstimator(f::Function, ϑ::Vector;
         if data != nothing
             for (i, f) in enumerate(grad)
                 _f = copy(f)
-                _g(ϑ) = _f(ϑ, data)
-                ff[i] = _g(ϑ)
+                _g(theta) = _f(theta, data)
+                ff[i] = _g(theta)
             end
             grad = (ff...)
         end
         mf  = make_ana_mom_fun(MDEstimator, g, grad)
     end
 
-    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), ϑ, lb, ub, glb, gub,
+    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), theta, lb, ub, glb, gub,
                                      wlb, wub, div, w, ni, ni, n, p, m))
 end
 
@@ -203,7 +203,7 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
                       g.e.gele,
                       g.e.hele,
                       size(g)...)
-    
+
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end
 

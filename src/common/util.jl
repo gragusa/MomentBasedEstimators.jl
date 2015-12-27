@@ -60,7 +60,6 @@ function row_kron{S,T}(A::SparseMatrixCSC{S}, B::SparseMatrixCSC{T})
     out
 end
 
-
 function gettril(x::Array{Float64, 2})
   n, m = size(x)
   a = zeros(convert(Int, n.*(n+1)/2))
