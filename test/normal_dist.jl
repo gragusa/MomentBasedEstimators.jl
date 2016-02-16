@@ -29,10 +29,6 @@ using Distributions
 srand(42)
 x = rand(Normal(4, 2), 1000)
 
-## FIXME: 
-## Ugly, but see ForwardDiff.j issue #78
-## https://github.com/JuliaDiff/ForwardDiff.jl/issues/78
-
 function h(θ)
     m1 = [θ[1]] .- x
     m2 = [θ[2]].^2 .- (x .- [θ[1]]).^2
@@ -40,7 +36,7 @@ function h(θ)
     return [m1 m2 m3]
 end
 
-step_1     = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
+step_1 = GMMEstimator(h, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
 initialize!(step_1);
 estimate!(step_1);
 
