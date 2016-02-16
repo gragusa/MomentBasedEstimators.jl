@@ -1,6 +1,6 @@
-type MomentMatrix{F <: AbstractMatrix}
-    X::F ## Unsmoothed
-    S::F ## Smoothed
+type MomentMatrix
+    X::Array{Float64, 2} ## Unsmoothed
+    S::Array{Float64, 2} ## Smoothed
     g_L::Vector
     g_U::Vector
     kern::SmoothingKernel
@@ -10,17 +10,17 @@ type MomentMatrix{F <: AbstractMatrix}
     m_ineq::Int64   ## Cols of X[:,m_eq+1:end] => H
 end
 
-type MDP{F} <: GenericMomentBasedEstimator
-    mm::MomentMatrix{F}
-    div::Divergence
+type MDP{F <: MomentMatrix, T <: Divergence, S <: MathProgBase.AbstractMathProgSolver} <: GenericMomentBasedEstimator
+    mm::F
+    div::T
     gele::Int64
     hele::Int64
-    solver::MathProgBase.SolverInterface.AbstractMathProgSolver
+    solver::S
 end
 
-immutable MinimumDivergenceProblem
-    m::MathProgBase.AbstractMathProgModel
-    e::MDP
+immutable MinimumDivergenceProblem{T <: MathProgBase.AbstractMathProgModel, S <: MDP}
+    m::T
+    e::S
 end
 
 function MinimumDivergenceProblem(G::AbstractMatrix,
