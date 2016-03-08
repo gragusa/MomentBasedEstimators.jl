@@ -1,0 +1,19 @@
+## Test the Minimum Divergence Problem
+## min D
+## subject to
+## A'p < k
+
+G = randn(100, 5)
+
+
+
+MinimumDivergenceProblem(G, zeros(5))
+
+function MinimumDivergenceProblem(G::AbstractMatrix,
+                                  c::Vector,
+                                  H::AbstractMatrix,
+                                  lwr::Vector,
+                                  upp::Vector;
+                                  div::Divergence = KullbackLeibler(),
+                                  solver = IpoptSolver(),
+                                  k::SmoothingKernel = IdentitySmoother())
