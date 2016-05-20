@@ -6,5 +6,6 @@ MathProgBase
 Reexport
 Distributions
 CovarianceMatrices
+Divergences
 Ipopt
 KNITRO
