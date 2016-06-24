@@ -12,6 +12,6 @@ addons:
     - gfortran
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/gragusa/Divergences.jl.git"); Pkg.clone("https://github.com/gragusa/ModelsGenerators.git"); Pkg.build("MomentBasedEstimators"); Pkg.test("MomentBasedEstimators"; coverage=true)'
+  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/gragusa/ModelsGenerators.git"); Pkg.build("MomentBasedEstimators"); Pkg.test("MomentBasedEstimators"; coverage=true)'
 after_success:
   - julia -e 'Pkg.add("Coverage"); cd(Pkg.dir("MomentBasedEstimators")); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
