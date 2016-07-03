@@ -55,7 +55,7 @@ function MathProgBase.eval_jac_g{M<:FADMomFun, V, S<:Unconstrained, T<:Unweighte
     θ  = u[(n+1):(n+k)]
     g  = e.mf.s(θ)
     ws(θ) = e.mf.s(θ)'*p
-    Dws = ForwardDiff.jacobian(ws, θ, chunk_size = length(θ))
+    Dws = ForwardDiff.jacobian(ws, θ, Chunk{min(10, length(θ))}())
     @inbounds for j=1:m+1, i=1:n+k
         if(j<=m && i<=n)
             J[i+(j-1)*(n+k)] = g[i+(j-1)*n]
@@ -128,8 +128,8 @@ function MathProgBase.eval_hesslag{M<:FADMomFun, V, S<:Unconstrained, T}(e::MDEs
     end
     sl(θ)  = e.mf.s(θ)*λ[1:m]
     wsl(θ) = (p'*e.mf.s(θ)*λ[1:m])[1]
-    @inbounds H[n+1:n*k+n] = transpose(ForwardDiff.jacobian(sl, θ, chunk_size = length(θ)))
-    @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ, chunk_size = length(θ)))
+    @inbounds H[n+1:n*k+n] = transpose(ForwardDiff.jacobian(sl, θ, Chunk{min(10, length(θ))}()))
+    @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ, Chunk{min(10, length(θ))}()))
 end
 
 function MathProgBase.eval_hesslag{M<:AnaGradMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)
@@ -149,7 +149,7 @@ function MathProgBase.eval_hesslag{M<:AnaGradMomFun, V, S<:Unconstrained, T}(e::
     Dsl  = e.mf.Dsl(θ, λ[1:m])
     wsl(θ) = (p'*e.mf.s(θ)*λ[1:m])[1]
     @inbounds H[n+1:n*k+n] = Dsl'
-    @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ, chunk_size = length(θ)))
+    @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ, Chunk{min(10, length(θ))}()))
 end
 
 function MathProgBase.eval_hesslag{M<:AnaFullMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)

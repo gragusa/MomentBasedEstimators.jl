@@ -28,7 +28,7 @@ function MathProgBase.eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T
     idx = e.ist.n[1]
     sn(θ) = vec(sum(e.mf.s(θ), 1))
     gemm!('T', 'N', 2.0,
-          ForwardDiff.jacobian(sn, θ, chunk_size = length(θ)),
+          ForwardDiff.jacobian(sn, θ, Chunk{min(10, length(θ))}()),
           e.W[idx]*sn(θ), 0.0, grad_f)
 end
 

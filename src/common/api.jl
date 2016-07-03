@@ -108,11 +108,11 @@ end
 ################################################################################
 ## Solve methods
 ################################################################################
-function solve!(g::MomentBasedEstimator)
-	   if status(g) == :Uninitialized
-		      initialize!(g)
-	   end
-end
+# function solve!(g::MomentBasedEstimator)
+# 	   if status(g) == :Uninitialized
+# 		      initialize!(g)
+# 	   end
+# end
 
 function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
 	   n, p, m = size(g)
