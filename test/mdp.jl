@@ -15,7 +15,6 @@ data = Dict{Symbol, Any}(
   :z => z
 )
 
-
 size(x)
 G = Array(Float64, 100, 5)
 

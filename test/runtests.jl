@@ -123,8 +123,12 @@ facts("Testing basic interface") do
         @fact tmp[1] --> roughly(7.825790062416562, 1e-07)
         @fact tmp[2] --> roughly(0.5517934008321658, 1e-07)
 
-        @fact coeftable(gmm_base).mat[1:2]'  --> [coef(gmm_base) stderr(gmm_base)]
-        @fact coeftable(el_base).mat[1:2]'  --> [coef(el_base) stderr(el_base)]
+        @fact coeftable(gmm_base).cols[1] --> coef(gmm_base)
+        @fact coeftable(gmm_base).cols[2] --> stderr(gmm_base)
+
+        @fact coeftable(el_base).cols[1] --> coef(el_base)
+        @fact coeftable(el_base).cols[2] --> stderr(el_base)
+
 
     end
     ## context("Instrumental variables large --- verified by asymptotics") do
