@@ -30,7 +30,7 @@ end
 function jacobian{T <: GMMEstimator}(e::MomentBasedEstimator{T})
     s(θ) = vec(sum(e.e.mf.s(θ), 1))
     θ = coef(e)
-    ForwardDiff.jacobian(s, θ, chunk_size = length(θ))
+    ForwardDiff.jacobian(s, θ, Chunk{min(10, length(θ))}())
 end
 
 function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}, ver::Symbol)
@@ -40,7 +40,7 @@ function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}, ver::Symbol)
         ws(θ) = vec(sum(e.e.mf.s(θ), 1))
     end
     θ = coef(e)
-    ForwardDiff.jacobian(ws, θ, chunk_size = length(θ))
+    ForwardDiff.jacobian(ws, θ, Chunk{min(10, length(θ))}())
 end
 
 jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}) = jacobian(e, :weighted)
