@@ -13,7 +13,6 @@ function max_args(f::Function)
     end
 end
 
-
 """
 Inplace version of `row_kron`. Sets the `i`th row of `out` equal to
 `kron(A[i, :], B[i, :])`
@@ -62,9 +61,9 @@ end
 
 function gettril(x::Array{Float64, 2})
   n, m = size(x)
-  a = zeros(convert(Int, n.*(n+1)/2))
+  a = Array(eltype(x), convert(Int, n.*(n+1)/2))
   k::Int = 1
-  for i = 1:n
+  @inbounds for i = 1:n
     for j = 1:i
       a[k] = x[i, j]
       k += 1
