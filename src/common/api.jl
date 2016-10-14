@@ -125,7 +125,7 @@ function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weig
 	   u_U = [getwtsUB(g); getparUB(g)]
 	   MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status = :Initialized
+	   g.status[1] = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
@@ -139,7 +139,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T
 	   u_U = getparUB(g)
     MathProgBase.loadproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status = :Initialized
+	   g.status[1] = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
@@ -153,7 +153,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:
 	   u_U = getparUB(g)
     MathProgBase.loadproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
 	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status = :Initialized
+	   g.status[1] = :Initialized
 end
 
 ################################################################################
@@ -324,7 +324,7 @@ function fill_in_results!{T <: MDEstimator}(me::MomentBasedEstimator{T})
     k2 = κ₂(me)
     S  = bw(me)
     me.r.objval = 2*k2*v/(S*k1^2)
-    me.status = :Solved
+    me.status[1] = :Solved
 end
 
 function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
@@ -332,7 +332,7 @@ function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
     n, p, m = size(g)
     copy!(g.r.coef, MathProgBase.getsolution(g.m))
     g.r.objval = MathProgBase.getobjval(g.m)
-    g.status = :Solved
+    g.status[1] = :Solved
 end
 
 function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
@@ -360,7 +360,7 @@ function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.S
         end
     end
     fill_in_results!(g)
-    g.status = :Solved
+    g.status[1] = :Solved
     g
 end
 

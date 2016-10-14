@@ -1,22 +1,22 @@
 #################################################################
 ### This test was lifted from the vingette for the R gmm package.
 #################################################################
-
 using Distributions
 
 srand(42)
 x = rand(Normal(4, 2), 1000)
 
-function h_norm(θ)
+function h_norm(θ, x)
     m1 = [θ[1]] .- x
     m2 = [θ[2]].^2 .- (x .- [θ[1]]).^2
     m3 = x.^3 .- [θ[1]].*([θ[1]].^2 .+ 3*[θ[2]].^2)
     return [m1 m2 m3]
 end
 
+h_norm(t) = h_norm(t, x)
+
 step_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
-initialize!(step_1);
-estimate!(step_1);
+@time estimate!(step_1);
 
 ch(θ) = [1 -1]*θ
 hlb = [0.]

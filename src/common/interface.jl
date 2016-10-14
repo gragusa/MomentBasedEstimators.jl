@@ -6,13 +6,13 @@ abstract MomentFunction
 
 abstract AnaMomFun <: MomentFunction
 
-type FADMomFun <: MomentFunction
+immutable FADMomFun <: MomentFunction
     g::Function            ## Moment Function
     s::Function            ## Smoothed moment function
     kern::SmoothingKernel
 end
 
-type AnaGradMomFun <: AnaMomFun
+immutable AnaGradMomFun <: AnaMomFun
     g::Function            ## Moment Function
     s::Function            ## Smoothed moment function
     Dsn::Function
@@ -21,7 +21,7 @@ type AnaGradMomFun <: AnaMomFun
     kern::SmoothingKernel
 end
 
-type AnaFullMomFun <: AnaMomFun
+immutable AnaFullMomFun <: AnaMomFun
     g::Function            ## Moment Function
     s::Function            ## Smoothed moment function
     Dsn::Function
@@ -81,13 +81,13 @@ type MomentBasedEstimatorOptions
     ##maybe optimization options?
 end
 
-type Unweighted <: Weighting end
+immutable Unweighted <: Weighting end
 
-type Weighted <: Weighting
+immutable Weighted <: Weighting
     wtg::WeightVec{Float64}
 end
 
-type Unconstrained <: Constraint end
+immutable Unconstrained <: Constraint end
 
 type Constrained <: Constraint
     h::Function
@@ -96,12 +96,12 @@ type Constrained <: Constraint
     nc::Int64  ## Number of constraints: row of h(θ)
 end
 
-type MomentBasedEstimator{T<:GenericMomentBasedEstimator}
+immutable MomentBasedEstimator{T<:GenericMomentBasedEstimator}
     e::T
     r::MomentBasedEstimatorResults
     s::MathProgBase.AbstractMathProgSolver
     m::MathProgBase.AbstractMathProgModel
-    status::Symbol
+    status::Vector{Symbol}
 end
 
 ## Basic MomentBasedEstimator constructor
@@ -112,7 +112,7 @@ function MomentBasedEstimator(e::GenericMomentBasedEstimator)
                                                         Array(Float64, npar(e), npar(e))),
                          DEFAULT_SOLVER(e),
                          MathProgBase.NonlinearModel(DEFAULT_SOLVER(e)),
-                         :Uninitialized)
+                         [:Uninitialized])
 end
 
 setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
@@ -141,7 +141,7 @@ type DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
     s::MathProgBase.AbstractMathProgSolver
 end
 
-function DEFAULT_SOLVER(::GMMEstimator) 
+function DEFAULT_SOLVER(::GMMEstimator)
   IpoptSolver(hessian_approximation = "limited-memory", print_level=2, sb = "yes")
 end
 

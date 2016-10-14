@@ -11,13 +11,13 @@ objvalstatus{T}(e::MomentBasedEstimator{T}) = e.r.objval
 
 momentfunction{T}(e::MomentBasedEstimator{T}) = momentfunction(e, Val{:smoothed})
 momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:smoothed}}) = begin
-    e.e.mf.s(coef(e))
+    e.e.mf.s(coef(e))::Array{Float64, 2}
 end
 
-momentfunction{T}(e::MomentBasedEstimator{T}, theta) = e.e.mf.s(theta)
+momentfunction{T}(e::MomentBasedEstimator{T}, theta) = e.e.mf.s(theta)::Array{Float64, 2}
 
 momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:unsmoothed}}) = begin
-    e.e.mf.g(coef(e))
+    e.e.mf.g(coef(e))::Array{Float64, 2}
 end
 
 function shrinkweight{T}(p::Array{T})
@@ -30,7 +30,7 @@ end
 mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.m.inner.x[1:nobs(e)]
 
 function mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
-    shrinkweight(mdweights(e))
+    shrinkweight(mdweights(e))::Array{Float64, 1}
 end
 
 # jacobian of moment function       #
