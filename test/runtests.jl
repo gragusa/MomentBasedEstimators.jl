@@ -86,25 +86,25 @@ facts("Testing basic interface") do
         @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
         @fact vcov(gmm_base) --> roughly(vcov(el_base), 0.01)
 
-        @fact vcov(el_base, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, false, :unweighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, false, :unweighted) --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(el_base, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_base, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_grad, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_full, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(cue_base, weighted = false) --> roughly(vcov(gmm_base), 0.001)
 
-        @fact vcov(el_base, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, false, :weighted)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, false, :weighted) --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(el_base, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_base, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_grad, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(kl_ana_full, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
+        @fact vcov(cue_base, weighted = true) --> roughly(vcov(gmm_base), 0.001)
 
         @fact stderr(gmm_base)' --> sqrt(vcov(gmm_base))
 
         @fact stderr(kl_base)' --> sqrt(vcov(kl_base))
         @fact stderr(el_base)' --> sqrt(vcov(el_base))
 
-        @fact stderr(kl_base, false, :weighted) --> stderr(kl_base)
-        @fact stderr(el_base, false, :weighted) --> stderr(el_base)
+        @fact stderr(kl_base, weighted = true) --> stderr(kl_base)
+        @fact stderr(el_base, weighted = true) --> stderr(el_base)
 
         @fact vcov(kl_base_truncated)  --> roughly(vcov(kl_base), 0.01)
         @fact vcov(cue_base_truncated) --> roughly(vcov(cue_base), 0.01)

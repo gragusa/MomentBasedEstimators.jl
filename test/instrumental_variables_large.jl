@@ -41,7 +41,7 @@ estimate!(cue_uncon)
 
 ## Anlytic gradient
 Dsn(θ)    = -z'x;
-Dws(θ, p) = -z'*scale(p,x);
+Dws(θ, p) = -z'*Diagonal(p)*x;
 Dsl(θ, λ) = -x.*(z*λ);
 Hwsl(θ, p, λ) = zeros(1,1);
 
