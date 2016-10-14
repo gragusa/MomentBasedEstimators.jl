@@ -378,7 +378,7 @@ reset_iteration_state!(g::MomentBasedEstimator) =
 function optimal_W(g::Array{Float64, 2}, theta::Vector, k::RobustVariance, demean::Bool)
     h = demean ? g .- mean(g, 1) : g
     n = size(h, 1)
-    S = vcov(h, k) * n
+    S = CovarianceMatrices.vcov(h, k) * n
     pinv(S)
 end
 
