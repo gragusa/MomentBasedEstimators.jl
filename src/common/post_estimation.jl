@@ -6,19 +6,20 @@
 #-----------------------------------#
 
 StatsBase.coef{T}(e::MomentBasedEstimator{T}) = e.r.coef
+StatsBase.coef(e::GenericMomentBasedEstimator) = e.coef
+
+
 status{T}(e::MomentBasedEstimator{T}) = e.r.status
 objvalstatus{T}(e::MomentBasedEstimator{T}) = e.r.objval
 
 momentfunction{T}(e::MomentBasedEstimator{T}) = momentfunction(e, Val{:smoothed})
-momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:smoothed}}) = begin
-    e.e.mf.s(coef(e))::Array{Float64, 2}
-end
+momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:smoothed}}) = e.e.mf.s(coef(e))
 
-momentfunction{T}(e::MomentBasedEstimator{T}, theta) = e.e.mf.s(theta)::Array{Float64, 2}
+momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:unsmoothed}}) = e.e.mf.g(coef(e))
 
-momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:unsmoothed}}) = begin
-    e.e.mf.g(coef(e))::Array{Float64, 2}
-end
+
+momentfunction{T}(e::MomentBasedEstimator{T}, theta) = e.e.mf.s(theta)
+momentfunction(e::GenericMomentBasedEstimator, theta) = e.mf.s(theta)
 
 function shrinkweight{T}(p::Array{T})
     mp = minimum(p)
@@ -33,41 +34,43 @@ function mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shr
     shrinkweight(mdweights(e))::Array{Float64, 1}
 end
 
-# jacobian of moment function       #
-#-----------------------------------#
-
-function jacobian{T <: GMMEstimator}(e::MomentBasedEstimator{T})
-    s(theta) = vec(sum(e.e.mf.s(theta), 1))
-    theta = coef(e)
-    ForwardDiff.jacobian(s, theta, Chunk{min(10, length(theta))}())
+function mdweights{T <: GMMEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
+    ones(first(size(e)))
 end
 
 
-function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}; weighted = true, shrinkweights = true)
+
+# jacobian of moment function       #
+#-----------------------------------#
+
+function jacobian{T <: GenericMomentBasedEstimator}(e::MomentBasedEstimator{T}; weighted = true, shrinkweights = true)
     t = weighted ? Val{:weighted} : Val{:unweighted}
     w = shrinkweights ? Val{:shrunk} : Val{:unshrunk}
     jacobian(e, t, w)
 end
 
-function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:weighted}}, w::Type{Val{:shrunk}})
-    p = mdweights(e, w)
-    ws(theta) = momentfunction(e, theta)'*p
-    theta = coef(e)
-    ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+function jacobian(e::MomentBasedEstimator, t::Type{Val{:weighted}}, w)
+    if isa(e.e.mf, MomentBasedEstimators.FADMomFun)
+      p = mdweights(e, w)
+      ws(theta) = momentfunction(e, theta)'*p
+      theta = coef(e)
+      ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+    else
+      e.e.mf.Dws(coef(e), mdweights(e, w))
+    end
 end
 
-function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:weighted}}, w::Type{Val{:unshrunk}})
-    p = mdweights(e, w)
-    ws(theta) = momentfunction(e, theta)'*p
-    theta = coef(e)
-    ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+function jacobian(e::MomentBasedEstimator, t::Type{Val{:unweighted}}, w)
+    if isa(e.e.mf, MomentBasedEstimators.FADMomFun)
+      p = ones(first(size(e)))
+      ws(theta) = At_mul_B(momentfunction(e, theta), p)
+      theta = coef(e)
+      ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+    else
+      e.e.mf.Dsn(coef(e))
+    end
 end
 
-function jacobian{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:unweighted}}, w)
-    ws(theta) = vec(sum(momentfunction(e, theta), 1))
-    theta = coef(e)
-    ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
-end
 
 
 # smoothing of the moment function  #

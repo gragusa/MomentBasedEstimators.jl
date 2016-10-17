@@ -6,29 +6,29 @@ abstract MomentFunction
 
 abstract AnaMomFun <: MomentFunction
 
-immutable FADMomFun <: MomentFunction
-    g::Function            ## Moment Function
-    s::Function            ## Smoothed moment function
-    kern::SmoothingKernel
+immutable FADMomFun{F1, F2, K} <: MomentFunction
+    g::F1            ## Moment Function
+    s::F2            ## Smoothed moment function
+    kern::K
 end
 
-immutable AnaGradMomFun <: AnaMomFun
-    g::Function            ## Moment Function
-    s::Function            ## Smoothed moment function
-    Dsn::Function
-    Dws::Function
-    Dsl::Function
-    kern::SmoothingKernel
+immutable AnaGradMomFun{F1, F2, F3, F4, F5, K} <: AnaMomFun
+    g::F1            ## Moment Function
+    s::F2            ## Smoothed moment function
+    Dsn::F3
+    Dws::F4
+    Dsl::F5
+    kern::K
 end
 
-immutable AnaFullMomFun <: AnaMomFun
-    g::Function            ## Moment Function
-    s::Function            ## Smoothed moment function
-    Dsn::Function
-    Dws::Function
-    Dsl::Function
-    Hwsl::Function
-    kern::SmoothingKernel
+immutable AnaFullMomFun{F1, F2, F3, F4, F5, F6, K} <: AnaMomFun
+    g::F1            ## Moment fun
+    s::F2            ## Smoothed moment fun
+    Dsn::F3
+    Dws::F4
+    Dsl::F5
+    Hwsl::F6
+    kern::K
 end
 
 type MomentBasedEstimatorResults
