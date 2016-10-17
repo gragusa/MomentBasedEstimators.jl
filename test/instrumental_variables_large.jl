@@ -52,11 +52,6 @@ kl_ana_full = MDEstimator(h, [.0], grad = (Dsn, Dws, Dsl, Hwsl));
 estimate!(kl_ana_full);
 
 
-
-
-
-
-
 HAS_KNITRO = true
 try
     cue_knitro = deepcopy(cue_base)
