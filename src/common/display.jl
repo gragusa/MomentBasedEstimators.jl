@@ -7,46 +7,39 @@ function show_extra{T <: GMMEstimator}(me::MomentBasedEstimator{T})
     "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
 end
 
-show_extra{T <: MDEstimator}(me::MomentBasedEstimator{T}) = ""
+show_extra{T <: MDEstimator}(me::MomentBasedEstimator{T}) = "\n"
 
 
-function Base.writemime{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
-    if me.status == :Solved
-        s = symbolfy(me)
-        println(io, s[1],"{",s[2],"}: $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
-        # Only gives information if the solver
-        # converged
-        if (status(me) == :Optimal)
-            # get coef table and j-test
-            ct = coeftable(me)
-            # print coefficient table
-            println(io, "Coefficients:\n")
-            show(io, ct)
-            # Then show extra information for this type
-            println(io, show_extra(me))
-        else
-            println("The optimization did not converge to a local solution")
-        end
-    elseif me.status == :Initialized
-        s = symbolfy(me)
-        println(io, s[1],"{",s[2],"}: $(npar(me)) parameter(s) with $(nmom(me)) moment(s)")
+function Base.show{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
+  s = symbolfy(me)
+  println(io, "\n$s [k = $(npar(me)), m = $(nmom(me))]\n")
+
+  if me.status[1] == :Solved
+    # Only gives information if the solver
+    # converged
+    if (status(me) == :Optimal)
+      # get coef table and j-test
+      ct = coeftable(me)
+      # print coefficient table
+      println(io, "Coefficients:\n")
+      show(io, ct)
+      # Then show extra information for this type
+      println(io, show_extra(me))
     else
-        println("Uninitialized MomentBasedEstimator type")
+      println("The optimization did not converge to a local solution")
     end
+  end
 end
 
 function symbolfy{T<:MomentBasedEstimator}(me::T)
     s = split(string(T), "MomentBasedEstimators.")
     if (s[3] == "GMMEstimator{")
-        s = (split(s[3],"{")[1],
-             split(s[5], ",")[1],
-             split(s[6], ",")[1],
-             split(s[7], "}}")[1])
+        Symbol(s[3], split(s[4], "{")[1], ", ", split(s[10], ",")[1], ", ", split(s[11], ",")[1], "}")
     elseif (s[3] == "MDEstimator{")
-        s = (split(s[3],"{")[1],
-             split(split(s[4], ",Divergences.")[2],",")[1],
-             split(s[5], ",")[1],
-             split(s[6], "}}")[1])
+        if (s[4] == "AnaGradMomFun{" || s[4] == "AnaFullMomFun{")
+          Symbol(s[3], split(s[4], "{")[1], ", ", split(s[7], "},Divergences.")[2], " ", split(s[8], ",")[1], "}")
+        else
+          Symbol(s[3], split(s[4], "{")[1], ", ", split(s[9], "},Divergences.")[2], " ", split(s[10], ",")[1], "}")
+        end
     end
-    map((x) -> symbol(x), s)
 end
