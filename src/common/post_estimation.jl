@@ -54,7 +54,7 @@ function jacobian(e::MomentBasedEstimator, t::Type{Val{:weighted}}, w)
       p = mdweights(e, w)
       ws(theta) = momentfunction(e, theta)'*p
       theta = coef(e)
-      ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+      ForwardDiff.jacobian(ws, theta)::Matrix{Float64}
     else
       e.e.mf.Dws(coef(e), mdweights(e, w))
     end
@@ -65,7 +65,7 @@ function jacobian(e::MomentBasedEstimator, t::Type{Val{:unweighted}}, w)
       p = ones(first(size(e)))
       ws(theta) = At_mul_B(momentfunction(e, theta), p)
       theta = coef(e)
-      ForwardDiff.jacobian(ws, theta, Chunk{min(10, length(theta))}())
+      ForwardDiff.jacobian(ws, theta)::Matrix{Float64}
     else
       e.e.mf.Dsn(coef(e))
     end

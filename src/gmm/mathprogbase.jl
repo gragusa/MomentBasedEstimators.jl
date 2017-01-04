@@ -28,7 +28,7 @@ function MathProgBase.eval_grad_f{M<:FADMomFun, V, T, S}(e::GMMEstimator{M, V, T
     idx = e.ist.n[1]
     sn(θ) = vec(sum(e.mf.s(θ), 1))
     gemm!('T', 'N', 2.0,
-          ForwardDiff.jacobian(sn, θ, Chunk{min(10, length(θ))}()),
+          ForwardDiff.jacobian(sn, θ)::Matrix{Float64},
           e.W[idx]*sn(θ), 0.0, grad_f)
 end
 
@@ -59,7 +59,7 @@ end
 
 function MathProgBase.eval_jac_g{M, V, T<:Constrained, S}(e::GMMEstimator{M, V, T, S}, J, θ)
     h(θ) = e.c.h(θ)
-    J[:] = vec(ForwardDiff.jacobian(h, θ)')
+    J[:] = vec((ForwardDiff.jacobian(h, θ)::Matrix{Float64})')
 end
 
 MathProgBase.hesslag_structure(d::GMMEstimator) = Int[], Int[]

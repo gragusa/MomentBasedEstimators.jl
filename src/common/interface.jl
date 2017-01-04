@@ -96,11 +96,11 @@ type Constrained <: Constraint
     nc::Int64  ## Number of constraints: row of h(θ)
 end
 
-immutable MomentBasedEstimator{T<:GenericMomentBasedEstimator}
+immutable MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MathProgBase.AbstractMathProgSolver, M<:MathProgBase.AbstractMathProgModel}
     e::T
     r::MomentBasedEstimatorResults
-    s::MathProgBase.AbstractMathProgSolver
-    m::MathProgBase.AbstractMathProgModel
+    s::S
+    m::M
     status::Vector{Symbol}
 end
 
