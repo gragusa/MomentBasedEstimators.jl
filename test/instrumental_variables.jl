@@ -8,9 +8,17 @@ z = dt[:,5:end];
 
 f(theta) = z.*(y-x*theta);
 
+
 gmm2s = GMMEstimator(f, [.0, .0, .0])
-MomentBasedEstimators.initialize!(gmm2s)
 estimate!(gmm2s)
+
+
+Dsn(θ)    = -z'x;
+Dws(θ, p) = -z'*Diagonal(p)*x;
+Dsl(θ, λ) = -x.*(z*λ);
+Hwsl(θ, p, λ) = zeros(3,3);
+
+mds = MDEstimator(f, [.0, .0, .0], grad = (Dsn, Dws, Dsl, Hwsl));
 
 ## GMM using linear algebra
 
@@ -20,8 +28,8 @@ estimate!(gmm2s)
 ## Stata vcov
 ## symmetric e(V)[3,3]
 ##             v2          v3          v4
-##    .00478911                        
-##   -.00272551   .01026473           
+##    .00478911
+##   -.00272551   .01026473
 ##    .00163441  -.00201291   .00983372
 
 ##   x1 |  -.0050209   .0692034    -0.07   0.942     -.140657    .1306153
