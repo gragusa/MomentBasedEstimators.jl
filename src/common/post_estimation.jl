@@ -28,7 +28,8 @@ function shrinkweight{T}(p::Array{T})
 end
 
 
-mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = e.m.inner.x[1:nobs(e)]
+mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = mdweights(e, Val{:unshrunk})
+mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unshrunk}}) = e.m.inner.x[1:nobs(e)]
 
 function mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
     shrinkweight(mdweights(e))::Array{Float64, 1}
@@ -46,7 +47,7 @@ end
 function jacobian{T <: GenericMomentBasedEstimator}(e::MomentBasedEstimator{T}; weighted = true, shrinkweights = true)
     t = weighted ? Val{:weighted} : Val{:unweighted}
     w = shrinkweights ? Val{:shrunk} : Val{:unshrunk}
-    jacobian(e, t, w)
+    MomentBasedEstimators.jacobian(e, t, w)
 end
 
 function jacobian(e::MomentBasedEstimator, t::Type{Val{:weighted}}, w)
@@ -96,7 +97,7 @@ end
 
 function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:weighted}}, w)
     mf = copy(momentfunction(e))
-    p  = sqrt(mdweights(e, w))
+    p  = sqrt.(mdweights(e, w))
     broadcast!(*, mf, mf, p)
     S  = bw(e)
     k1 = κ₁(e)
@@ -117,7 +118,15 @@ function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:unwei
 end
 
 mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(momentfunction(e), smoothing_kernel(e))
-mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance) = vcov(momentfunction(e), k)
+
+adjfactor(e::MomentBasedEstimator, k::RobustVariance) = 1.0
+adjfactor(e::MomentBasedEstimator, k::HC1) = nobs(e)/(nobs(e)-npar(e))
+
+function mfvcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance)
+    ## FIXME: Add methods to calculate variances that respond to k::RobustVariance
+    ## duck type
+    V = vcov(momentfunction(e), k)
+end
 
 initial_weighting{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.W[end]
 
@@ -128,9 +137,10 @@ StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = vcov(e, smoothin
 
 function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance, mgr::TwoStepGMM)
     n, p, m = size(e)
-    G = jacobian(e)
+    G = MomentBasedEstimators.jacobian(e)
     S = mfvcov(e, k)
-    (n.^2/(n-p))*pinv(G'*pinv(S)*G)
+    #(n.^2/(n-p))*pinv(G'*pinv(S)*G)
+    n*pinv(G'*pinv(S)*G)*adjfactor(e, k)
 end
 
 function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance, mgr::OneStepGMM)
@@ -142,7 +152,8 @@ function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::Robust
     ## that gives the correct covariance even when S \neq Var(\sqrt{N}g_N(\theta_0))
     A = pinv(G'*W*G)
     B = G'*W*S*W*G
-    (n.^2/(n-p))*A*B*A
+    #(n.^2/(n-p))*A*B*A
+    n*A*B*A*adjfactor(e, k)
 end
 
 function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, k::RobustVariance)
@@ -153,7 +164,7 @@ function StatsBase.vcov{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::Iter
     vcov(e, smoothing_kernel(e), mgr)
 end
 
-function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}; robust::Bool = false, weighted::Bool = true, shrinkweights = true)
+function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}; robust::Bool = false, weighted::Bool = true, shrinkweights = false)
     r = robust ? Val{:robust} : Val{:unrobust}
     t = weighted ? Val{:weighted} : Val{:unweighted}
     w = shrinkweights ? Val{:shrunk} : Val{:unshrunk}
@@ -167,8 +178,10 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val
     V = G'pinv(Ω)*G/n
     H = inv(objhessian(e))
     V = pinv(H'*V*H)
-    sc = n/(n-p)
-    return scale!(sc, V)
+    ## Do not degree-of-freedom correct
+    #sc = n/(n-p)
+    #return scale!(sc, V)
+    V
 end
 
 function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unrobust}}, t, w)
@@ -176,8 +189,10 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val
     Ω = mfvcov(e, t, w)
     G = jacobian(e, t, w)
     V = pinv(G'pinv(Ω)*G/n)
-    sc = n/(n-p)
-    return scale!(sc, V)
+    ## Do not degree-of-freedom correct
+    #sc = n/(n-p)
+    #return scale!(sc, V)
+    V
 end
 
 
@@ -187,8 +202,8 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, k::RobustV
     Ω = CovarianceMatrices.vcov(mf, k)
     G = jacobian(e, weighted = false, shrinkweights = false)
     V = pinv(G'pinv(Ω)*G/n)
-    sc = n/(n-p)
-    scale!(sc, V)
+    #sc = n/(n-p)
+    scale!(adjfactor(e, k), V)
 end
 
 
@@ -220,19 +235,19 @@ end
 #-----------------------------------#
 
 function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T})
-    sqrt(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
+    sqrt.(diag(vcov(e, smoothing_kernel(e), iteration_manager(e))))
 end
 
 function StatsBase.stderr{T <: GMMEstimator}(e::MomentBasedEstimator{T}, mgr::IterationManager)
-    sqrt(diag(vcov(e, smoothing_kernel(e), mgr)))
+    sqrt.(diag(vcov(e, smoothing_kernel(e), mgr)))
 end
 
 function StatsBase.stderr{T}(e::MomentBasedEstimator{T}, k::RobustVariance)
-    sqrt(diag(vcov(e, k)))
+    sqrt.(diag(vcov(e, k)))
 end
 
 function StatsBase.stderr{T <: MDEstimator}(e::MomentBasedEstimator{T}; robust::Bool = false, weighted::Bool = true, shrinkweights::Bool = true)
-    sqrt(diag(vcov(e, robust = robust, weighted = weighted, shrinkweights = shrinkweights)))
+    sqrt.(diag(vcov(e, robust = robust, weighted = weighted, shrinkweights = shrinkweights)))
 end
 
 # J test                            #
@@ -258,7 +273,7 @@ function StatsBase.coeftable(e::MomentBasedEstimator)
     cc = coef(e)
     se = stderr(e)
     zz = z_stats(e)
-    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs(zz))),
+    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs.(zz))),
               ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
               ["x$i" for i = 1:npar(e)],
               4)

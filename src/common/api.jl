@@ -27,7 +27,8 @@ function GMMEstimator(f::Function, theta::Vector;
                       initialW = nothing,
                       wts = nothing,
                       mgr::IterationManager = TwoStepGMM(),
-                      constraints = Unconstrained())
+                      constraints = Unconstrained(),
+                      s::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(hessian_approximation = "limited-memory", print_level=2, sb = "yes"))
     ## Set Moment Function
     g(theta) = data == nothing ? f(theta) : f(theta, data)
     ## Evaluate Moment Function
@@ -54,17 +55,18 @@ function GMMEstimator(f::Function, theta::Vector;
 
     MomentBasedEstimator(GMMEstimator(mf, constraints, theta, lb, ub, nf, nf,
                                       mgr, IterationState([1], [10.0], theta), W,
-                                      w, ni, ni, n, p, m))
+                                      w, ni, ni, n, p, m), s)
 end
 
-typealias GradTuple Union{Void, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
+@compat const GradTuple=Union{Void, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
 
 
 function MDEstimator(f::Function, theta::Vector;
                      grad::GradTuple = nothing,
                      data = nothing, wts = nothing,
                      div::Divergence = DEFAULT_DIVERGENCE,
-                     kernel::SmoothingKernel = IdentitySmoother())
+                     kernel::SmoothingKernel = IdentitySmoother(),
+                     s::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level=2, sb = "yes"))
     ## Set Moment Function
     g(theta) = data == nothing ? f(theta) : f(theta, data)
     ## Evaluate Moment Function
@@ -89,7 +91,7 @@ function MDEstimator(f::Function, theta::Vector;
     if grad == nothing
         mf  = make_fad_mom_fun(g, kernel)
     else
-        ff = Array(Function, length(grad))
+        ff = Array{Function}(length(grad))
         if data != nothing
             for (i, f) in enumerate(grad)
                 _f = copy(f)
@@ -183,7 +185,7 @@ end
 ## This return a constrained version of MomentBasedEstimator
 function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator)
     p = npar(g); chk = check_constraint_sanity(p, startingval(g), h, hlb, hub)
-    r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array(Float64, p), Array(Float64, p, p))
+    r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array{Float64}(p), Array{Float64}(p, p))
     if typeof(g.e.mf) == MomentBasedEstimators.FADMomFun
         mf  = make_fad_mom_fun(g.e.mf.g, IdentitySmoother())
     else
@@ -210,7 +212,7 @@ end
 ################################################################################
 ## Update solver
 ################################################################################
-function solver!(g::MomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
+function setsolver!(g::MomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     g.s = s
     g.m = deepcopy(MathProgBase.NonlinearModel(s))
 end
@@ -367,7 +369,7 @@ end
 next!(x::IterationState) = x.n[1] += 1
 
 function update!(x::IterationState, v::Vector)
-    x.change[:] = maxabs(x.prev - v)
+    x.change[:] = maximum(abs, x.prev - v)
     x.prev[:] = v
 end
 

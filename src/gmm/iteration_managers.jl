@@ -2,7 +2,7 @@
 # Iteration managers #
 # ------------------ #
 
-abstract IterationManager
+@compat abstract type IterationManager end
 
 immutable OneStepGMM <: IterationManager
     k::RobustVariance

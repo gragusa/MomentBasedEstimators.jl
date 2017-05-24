@@ -7,26 +7,38 @@ srand(42)
 x = rand(Normal(4, 2), 1000)
 
 function h_norm(θ)
-    m1 = [θ[1]] .- x
-    m2 = [θ[2]].^2 .- (x .- [θ[1]]).^2
-    m3 = x.^3 .- [θ[1]].*([θ[1]].^2 .+ 3*[θ[2]].^2)
+    m1 = θ[1] .- x
+    m2 = θ[2].^2 .- (x .- θ[1]).^2
+    m3 = x.^3 .- θ[1].*(θ[1].^2 .+ 3*θ[2].^2)
     return [m1 m2 m3]
 end
 
 
 
 step_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
-@time estimate!(step_1);
+estimate!(step_1);
 
-ch(θ) = [1 -1]*θ
+step_2 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = TwoStepGMM())
+estimate!(step_2);
+
+
+step_2_auto = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = TwoStepGMM(BartlettKernel()))
+estimate!(step_2_auto)
+
+
+step_2_hac = GMMEstimator(h_norm, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, BartlettKernel(5.)));
+estimate!(step_2_hac);
+
+
+
+ch(θ) = [1 1]*θ
 hlb = [0.]
 hub = [0.]
 
 cstep_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
+estimate!(cstep_1)
 
 step_2_hac = GMMEstimator(h_norm, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, QuadraticSpectralKernel(0.91469)));
-
-
 estimate!(step_2_hac);
 
 step_2_iid = GMMEstimator(h_norm, coef(step_1), initialW = optimal_W(step_1, HC0()));

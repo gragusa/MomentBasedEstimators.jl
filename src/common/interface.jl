@@ -1,10 +1,10 @@
-abstract GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator
-abstract Constraint
-abstract Weighting
+@compat abstract type GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator end
+@compat abstract type Constraint end
+@compat abstract type Weighting end
 
-abstract MomentFunction
+@compat abstract type MomentFunction end
 
-abstract AnaMomFun <: MomentFunction
+@compat abstract type AnaMomFun <: MomentFunction end
 
 immutable FADMomFun{F1, F2, K} <: MomentFunction
     g::F1            ## Moment Function
@@ -84,7 +84,7 @@ end
 immutable Unweighted <: Weighting end
 
 immutable Weighted <: Weighting
-    wtg::WeightVec{Float64}
+    wtg::Weights{Float64}
 end
 
 immutable Unconstrained <: Constraint end
@@ -108,16 +108,27 @@ end
 function MomentBasedEstimator(e::GenericMomentBasedEstimator)
     MomentBasedEstimator(e, MomentBasedEstimatorResults(
                                                         :Unsolved, 0.0,
-                                                        Array(Float64, npar(e)),
-                                                        Array(Float64, npar(e), npar(e))),
+                                                        Array{Float64}(npar(e)),
+                                                        Array{Float64}(npar(e), npar(e))),
                          DEFAULT_SOLVER(e),
                          MathProgBase.NonlinearModel(DEFAULT_SOLVER(e)),
                          [:Uninitialized])
 end
 
-setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
-setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:1]
-setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m, m) for i=1:mgr.maxiter+1]
+function MomentBasedEstimator(e::GenericMomentBasedEstimator, s::MathProgBase.SolverInterface.AbstractMathProgSolver)
+    MomentBasedEstimator(e, MomentBasedEstimatorResults(
+                                                        :Unsolved, 0.0,
+                                                        Array{Float64}(npar(e)),
+                                                        Array{Float64}(npar(e), npar(e))),
+                         DEFAULT_SOLVER(e),
+                         MathProgBase.NonlinearModel(s),
+                         [:Uninitialized])
+end
+
+
+setW0(mgr::TwoStepGMM, m::Int64) =   [Array{Float64}(m, m) for i=1:2]
+setW0(mgr::OneStepGMM, m::Int64) =   [Array{Float64}(m, m) for i=1:1]
+setW0(mgr::IterativeGMM, m::Int64) = [Array{Float64}(m, m) for i=1:mgr.maxiter+1]
 
 function make_fad_mom_fun(g::Function,
                           kernel::SmoothingKernel = IdentitySmoother())

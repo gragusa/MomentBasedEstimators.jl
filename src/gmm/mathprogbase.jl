@@ -48,8 +48,8 @@ function MathProgBase.jac_structure{M, V, T<:Constrained, S}(e::GMMEstimator{M, 
     nc = e.c.nc            ## Number of constraints
     n, k, m = size(e)
     ## The jacobian is a nc x k
-    rows = Array(Int64, e.gele)
-    cols = Array(Int64, e.gele)
+    rows = Array{Int64}(e.gele)
+    cols = Array{Int64}(e.gele)
     for j = 1:nc, r = 1:k
         @inbounds rows[r+(j-1)*k] = j
         @inbounds cols[r+(j-1)*k] = r

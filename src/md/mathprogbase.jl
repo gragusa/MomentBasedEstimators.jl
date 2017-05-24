@@ -38,8 +38,8 @@ end
 
 function MathProgBase.jac_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V, S, T})
     n, k, m = size(e)
-    rows = Array(Int64, e.gele)
-    cols = Array(Int64, e.gele)
+    rows = Array{Int64}(e.gele)
+    cols = Array{Int64}(e.gele)
     for j = 1:m+1, r = 1:n+k
         if !((r > n) && (j==m+1))
             @inbounds rows[r+(j-1)*(n+k)] = j
@@ -86,8 +86,8 @@ end
 
 function MathProgBase.hesslag_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V, S, T})
     n, k, m = size(e)
-    rows = Array(Int64, e.hele)
-    cols = Array(Int64, e.hele)
+    rows = Array{Int64}(e.hele)
+    cols = Array{Int64}(e.hele)
     @simd for j = 1:n
         @inbounds rows[j] = j
         @inbounds cols[j] = j

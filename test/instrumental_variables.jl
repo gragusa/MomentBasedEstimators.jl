@@ -9,16 +9,31 @@ z = dt[:,5:end];
 f(theta) = z.*(y-x*theta);
 
 
-gmm2s = GMMEstimator(f, [.0, .0, .0])
-estimate!(gmm2s)
+crossprod(g) = g'g
 
+iv_gmm1s = GMMEstimator(f, [.0, .0, .0], initialW = eye(7), mgr = OneStepGMM())
+
+estimate!(iv_gmm1s)
+W = inv(crossprod(f(coef(iv_gmm1s))))
+
+iv_gmm2s = GMMEstimator(f, [.0, .0, .0], initialW = W, mgr = OneStepGMM())
+iv_gmm2s_ = GMMEstimator(f, [.0, .0, .0], initialW = eye(7), mgr = TwoStepGMM())
+estimate!(iv_gmm2s)
+estimate!(iv_gmm2s_)
 
 Dsn(θ)    = -z'x;
 Dws(θ, p) = -z'*Diagonal(p)*x;
 Dsl(θ, λ) = -x.*(z*λ);
 Hwsl(θ, p, λ) = zeros(3,3);
 
-mds = MDEstimator(f, [.0, .0, .0], grad = (Dsn, Dws, Dsl, Hwsl));
+iv_kl = MDEstimator(f, [.0, .0, .0], div = KullbackLeibler(), grad = (Dsn, Dws, Dsl, Hwsl))
+iv_el = MDEstimator(f, [.0, .0, .0], div = ReverseKullbackLeibler(), grad = (Dsn, Dws, Dsl, Hwsl))
+iv_cu = MDEstimator(f, [.0, .0, .0], div = ChiSquared(), grad = (Dsn, Dws, Dsl, Hwsl))
+
+estimate!(iv_kl)
+estimate!(iv_el)
+estimate!(iv_cu)
+
 
 ## GMM using linear algebra
 

@@ -1,4 +1,4 @@
-abstract SmoothingKernel
+@compat abstract type SmoothingKernel end
 
 immutable IdentitySmoother <: SmoothingKernel
     S::Float64

@@ -45,7 +45,7 @@ The `i`th row of the output matrix will be equal to
 function row_kron{S,T}(A::AbstractMatrix{S}, B::AbstractMatrix{T})
     nobsa, na = size(A)
     nobsb, nb = size(B)
-    out = Array(promote_type(S, T), nobsa, na*nb)
+    out = Array{promote_type(S, T)}(nobsa, na*nb)
     row_kron!(A, B, out)
     out
 end
@@ -61,7 +61,7 @@ end
 
 function gettril(x::Array{Float64, 2})
   n, m = size(x)
-  a = Array(eltype(x), convert(Int, n.*(n+1)/2))
+  a = Array{eltype(x)}(convert(Int, n.*(n+1)/2))
   k::Int = 1
   @inbounds for i = 1:n
     for j = 1:i

@@ -9,6 +9,8 @@ z = dt[:, 3:end];
 
 h(theta) = z.*(y-x*theta);
 
+
+
 gmm_base = GMMEstimator(h, [.0])
 estimate!(gmm_base)
 
@@ -50,17 +52,3 @@ estimate!(kl_ana_grad);
 
 kl_ana_full = MDEstimator(h, [.0], grad = (Dsn, Dws, Dsl, Hwsl));
 estimate!(kl_ana_full);
-
-
-HAS_KNITRO = true
-try
-    cue_knitro = deepcopy(cue_base)
-    solver!(cue_knitro, KnitroSolver(hessopt = 6, print_level = 2))
-    estimate!(cue_knitro)
-catch
-    HAS_KNITRO = false
-end
-
-if HAS_KNITRO
-    @fact coef(cue_knitro) --> roughly(coef(cue_base))
-end
