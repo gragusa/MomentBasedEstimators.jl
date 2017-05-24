@@ -10,12 +10,17 @@ h(theta) = z.*(y-x*theta);
 #=
 KNITRO
 =#
-HAS_KNITRO = true
-try
-    kl_base = MDEstimator(h, [.0], s = KNITRO.KnitroSolver())
-    estimate!(kl_base)
-catch
-    HAS_KNITRO = false
+HAS_KNITRO = false
+isa(Pkg.installed("KNITRO"), VersionNumber) && begin
+    pkg = Symbol("KNITRO") ## for example
+    eval(:($(Expr(:using, pkg))))
+    HAS_KNITRO = true
+    try
+        kl_base = MDEstimator(h, [.0], s = KNITRO.KnitroSolver())
+        estimate!(kl_base)
+    catch
+        HAS_KNITRO = false
+    end
 end
 
 sgmm = KNITRO.KnitroSolver(hessopt=2, outlev=0)
