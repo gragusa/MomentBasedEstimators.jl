@@ -136,14 +136,20 @@ end
 end
 
 
-HAS_KNITRO = true
-h(theta) = reshape(x.-theta, 100, 1)
-x = randn(100)
-try
-    kl_base = MDEstimator(h, [.0], s = KNITRO.KnitroSolver(outlev=0))
-    estimate!(kl_base)
-catch
-    HAS_KNITRO = false
+
+HAS_KNITRO = false
+isa(Pkg.installed("KNITRO"), VersionNumber) && begin
+    pkg = Symbol("KNITRO") ## for example
+    eval(:($(Expr(:using, pkg))))
+    HAS_KNITRO = true
+    h(theta) = reshape(x.-theta, 100, 1)
+    x = randn(100)
+    try
+        klbase = MDEstimator(h, [.0], s = KNITRO.KnitroSolver(outlev=0))
+        estimate!(klbase)
+    catch
+        HAS_KNITRO = false
+    end
 end
 
 if HAS_KNITRO
