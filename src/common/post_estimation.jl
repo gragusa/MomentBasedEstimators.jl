@@ -282,9 +282,9 @@ end
 # hack: fix solver                  #
 #-----------------------------------#
 
-fixsolver!(s::Ipopt.IpoptSolver) = s
 
-function fixsolver!(s::KnitroSolver)
+
+function fixsolver!(s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     opt = Array(Any, length(s.options))
     for j in enumerate(s.options)
         r = j[1]; o = j[2]
