@@ -337,13 +337,13 @@ function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
     g.status[1] = :Solved
 end
 
-function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
-    # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
-    # KNITRO.solveProblem(g.m.inner)
-    MathProgBase.optimize!(g.m)
-end
+# function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
+#     # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
+#     # KNITRO.solveProblem(g.m.inner)
+#     MathProgBase.optimize!(g.m)
+# end
 
-solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.optimize!(g.m)
+solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractNonlinearModel) = MathProgBase.optimize!(g.m)
 
 function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractMathProgModel)
     reset_iteration_state!(g)
