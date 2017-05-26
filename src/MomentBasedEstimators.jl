@@ -1,3 +1,4 @@
+__precompile__(true)
 module MomentBasedEstimators
 
 using ForwardDiff
@@ -65,9 +66,13 @@ export GMMEstimator,
        setmfUB!,
        setmfbounds!,
        objval,
+       impliedprob,
+       multiplier,
        J_test,
+       LM_test,
+       LMe_test,
+       LR_test,
        writemime,
        TruncatedSmoother,
-       BartlettSmoother,
-       MinimumDivergenceProblem
+       BartlettSmoother
 end

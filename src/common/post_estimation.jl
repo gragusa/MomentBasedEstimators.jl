@@ -8,7 +8,6 @@
 StatsBase.coef{T}(e::MomentBasedEstimator{T}) = e.r.coef
 StatsBase.coef(e::GenericMomentBasedEstimator) = e.coef
 
-
 status{T}(e::MomentBasedEstimator{T}) = e.r.status
 objvalstatus{T}(e::MomentBasedEstimator{T}) = e.r.objval
 
@@ -16,7 +15,6 @@ momentfunction{T}(e::MomentBasedEstimator{T}) = momentfunction(e, Val{:smoothed}
 momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:smoothed}}) = e.e.mf.s(coef(e))
 
 momentfunction{T}(e::MomentBasedEstimator{T}, ::Type{Val{:unsmoothed}}) = e.e.mf.g(coef(e))
-
 
 momentfunction{T}(e::MomentBasedEstimator{T}, theta) = e.e.mf.s(theta)
 momentfunction(e::GenericMomentBasedEstimator, theta) = e.mf.s(theta)
@@ -28,23 +26,31 @@ function shrinkweight{T}(p::Array{T})
 end
 
 
-mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}) = mdweights(e, Val{:unshrunk})
-mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unshrunk}}) = e.m.inner.x[1:nobs(e)]
+impliedprob{T <: MDEstimator}(e::MomentBasedEstimator{T}) = impliedprob(e, Val{:unshrunk})
+impliedprob{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unshrunk}}) = e.m.inner.x[1:nobs(e)]
 
-function mdweights{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
-    shrinkweight(mdweights(e))::Array{Float64, 1}
+function impliedprob{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
+    shrinkweight(impliedprob(e))::Array{Float64, 1}
 end
 
-function mdweights{T <: GMMEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
+function impliedprob{T <: GMMEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:shrunk}})
     ones(first(size(e)))
 end
 
+function impliedprob{T <: GMMEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unshrunk}})
+    ones(first(size(e)))
+end
+
+
+multiplier{T <: MDEstimator}(e::MomentBasedEstimator{T}) = -e.m.inner.mult_g[1:end]
+multiplier_eta{T <: MDEstimator}(e::MomentBasedEstimator{T}) = -e.m.inner.mult_g[end]
+multiplier_lambda{T <: MDEstimator}(e::MomentBasedEstimator{T}) = -e.m.inner.mult_g[1:end-1]
 
 
 # jacobian of moment function       #
 #-----------------------------------#
 
-function jacobian{T <: GenericMomentBasedEstimator}(e::MomentBasedEstimator{T}; weighted = true, shrinkweights = true)
+function jacobian{T <: GenericMomentBasedEstimator}(e::MomentBasedEstimator{T}; weighted = true, shrinkweights = false)
     t = weighted ? Val{:weighted} : Val{:unweighted}
     w = shrinkweights ? Val{:shrunk} : Val{:unshrunk}
     MomentBasedEstimators.jacobian(e, t, w)
@@ -52,12 +58,12 @@ end
 
 function jacobian(e::MomentBasedEstimator, t::Type{Val{:weighted}}, w)
     if isa(e.e.mf, MomentBasedEstimators.FADMomFun)
-      p = mdweights(e, w)
+      p = impliedprob(e, w)
       ws(theta) = momentfunction(e, theta)'*p
       theta = coef(e)
       ForwardDiff.jacobian(ws, theta)::Matrix{Float64}
     else
-      e.e.mf.Dws(coef(e), mdweights(e, w))
+      e.e.mf.Dws(coef(e), impliedprob(e, w))
     end
 end
 
@@ -89,7 +95,7 @@ iteration_manager{T <: GMMEstimator}(e::MomentBasedEstimator{T}) = e.e.mgr
 # covariance of the moment function #
 #-----------------------------------#
 
-function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, weighted::Bool = true, shrinkweights::Bool = true)
+function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, weighted::Bool = true, shrinkweights::Bool = false)
     t = weighted ? Val{:weighted} : Val{:unweighted}
     w = shrinkweights ? Val{:shrunk} : Val{:unshrunk}
     mfvcov(e, t, w)
@@ -97,7 +103,7 @@ end
 
 function mfvcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, t::Type{Val{:weighted}}, w)
     mf = copy(momentfunction(e))
-    p  = sqrt.(mdweights(e, w))
+    p  = sqrt.(impliedprob(e, w))
     broadcast!(*, mf, mf, p)
     S  = bw(e)
     k1 = κ₁(e)
@@ -175,20 +181,20 @@ function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val
     n, p, m = size(e)
     G = jacobian(e, t, w)
     S = mfvcov(e, t, w)
-    V = G'pinv(Ω)*G/n
+    V = G'pinv(S)*G/n
     H = inv(objhessian(e))
-    V = pinv(H'*V*H)
+    H'*V*H
     ## Do not degree-of-freedom correct
     #sc = n/(n-p)
     #return scale!(sc, V)
-    V
+    #V
 end
 
 function StatsBase.vcov{T <: MDEstimator}(e::MomentBasedEstimator{T}, ::Type{Val{:unrobust}}, t, w)
     n, p, m = size(e)
-    Ω = mfvcov(e, t, w)
+    S = mfvcov(e, t, w)
     G = jacobian(e, t, w)
-    V = pinv(G'pinv(Ω)*G/n)
+    V = pinv(G'pinv(S)*G/n)
     ## Do not degree-of-freedom correct
     #sc = n/(n-p)
     #return scale!(sc, V)
@@ -210,14 +216,63 @@ end
 # hessian of the MD objective       #
 #-----------------------------------#
 
-function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
+
+ρ(d::KullbackLeibler, x::Real) = exp(x) - one(x)
+ρ(d::ReverseKullbackLeibler, x::Real) = -log(1-x)
+ρ(d::ChiSquared, x::Real) = x^2/2 + x
+
+ρ₁{T <: MDEstimator}(e::MomentBasedEstimator{T}) = ρ₁(e.e.div)
+ρ₁(d::KullbackLeibler, x::Real) = exp(x)
+ρ₁(d::ReverseKullbackLeibler, x::Real) = 1/(1-x)
+ρ₁(d::ChiSquared, x::Real) = 1+x
+
+function ρ₁(d::CressieRead, x::Real)
+    α = d.α
+    x^α/2-α
+end
+
+ρ₂(d::KullbackLeibler, x::Real) = exp(x)
+ρ₂(d::ReverseKullbackLeibler, x::Real) = 1/((1-x)^2)
+ρ₂(d::ChiSquared, x::Real) = one(x)
+
+function ρ₂(d::CressieRead, x::Real)
+    α = d.α
+    .5*α*x^(α-1)
+end
+
+
+objhessian{T <: MDEstimator}(md::MomentBasedEstimator{T}) = objhessian(md, Val{:forwarddiff})
+
+function objhessian{T <: MDEstimator}(md::MomentBasedEstimator{T}, ::Type{Val{:forwarddiff}})
+    Θ = coef(md)
+    QQ = (theta) -> Qhessian(md, theta)
+    cfg1 = ForwardDiff.HessianConfig(QQ, Θ, ForwardDiff.Chunk{length(Θ)}())
+    HAD = ForwardDiff.hessian(QQ, Θ, cfg1)
+    k1 = κ₁(md)
+    k2 = κ₂(md)
+    S  = bw(md)
+    scale!(HAD, -k2/(S*k1^2))
+end
+
+function objhessian{T <: MDEstimator}(md::MomentBasedEstimator{T}, ::Type{Val{:finitediff}})
+    Θ = coef(md)
+    QQ(theta) = Qhessian(md, theta)
+    #cfg1 = ForwardDiff.HessianConfig(QQ, Θ, ForwardDiff.Chunk{length(Θ)}())
+    HFD = Calculus.hessian(QQ, coef(md))
+    k1 = κ₁(md)
+    k2 = κ₂(md)
+    S  = bw(md)
+    scale!(HFD, -k2/(S*k1^2))
+end
+
+function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T}, ::Type{Val{:bruteforce}})
     @assert status(m) == :Optimal "the status of `::MDEstimator` is not :Optimal"
     n, _, p = size(m)
     ## In case KNITRO has ms_enable on disactivate it
     solver = m.s
     fixsolver!(solver)
 
-    mdp = MinimumDivergenceProblem(Array(Float64, (n,p)), zeros(p), wlb = m.e.wlb,
+    mdp = MinimumDivergenceProblem(Array{Float64}(n,p), zeros(p), wlb = m.e.wlb,
                                    wub = m.e.wub, solver = solver, div = m.e.div)
     function obj(theta)
         mdp.e.mm.S[:] = m.e.mf.s(theta)
@@ -228,8 +283,48 @@ function objhessian{T <: MDEstimator}(m::MomentBasedEstimator{T})
     k1 = κ₁(m)
     k2 = κ₂(m)
     S  = bw(m)
-    k2*H/(S*k1^2)
+    scale!(H, k2/(S*k1^2))
 end
+
+function Qhessian{T <: MDEstimator, F<:Real}(e::MomentBasedEstimator{T}, Θ::Array{F,1})
+    # println(Θ)
+    d = e.e.div
+    γ, iter = .9, 25
+    n, p, m = size(e)
+    g = MomentBasedEstimators.momentfunction(e, Θ)
+    lo = Array{F}(m+1)
+    ln = Array{F}(m+1)
+    λ = multiplier(e)
+    u = g*λ[1:end-1] + λ[end]
+    w = MomentBasedEstimators.ρ₁.(d, u)
+    w2 = MomentBasedEstimators.ρ₂.(d, u)
+    gw = g'w
+    sumw = sum(w)
+    H = [(w2.*g)'g  gw
+         gw' sumw]
+    ∇f = [gw; sumw - n]
+    ln .= λ .- γ*(H\∇f)
+    u .= g*ln[1:end-1] + ln[end]
+    # println("Norm:")
+    # println(norm(ln-lo, 2))
+    while norm(ln-lo, 2) > 1e-08
+        # println("Norm 2:")
+        # println(norm(ln-lo, 2))
+        copy!(lo, ln)
+        w .= MomentBasedEstimators.ρ₁.(d, u)
+        w2 .= MomentBasedEstimators.ρ₂.(d, u)
+        gw .= g'w
+        sumw = sum(w)
+        H .= [(w2.*g)'g  gw
+             gw' sumw]
+        ∇f .= [gw; sumw - n]
+        ln .= lo .- γ*(H\∇f)
+        u .= g*ln[1:end-1] + ln[end]
+    end
+    sum(ρ.(d, u)-ln[end])
+end
+
+
 
 # standard error of the estimator   #
 #-----------------------------------#
@@ -266,6 +361,56 @@ df{T}(e::MomentBasedEstimator{T}) = nmom(e) - npar(e)
 z_stats{T}(e::MomentBasedEstimator{T}) = coef(e) ./ stderr(e)
 p_values{T}(e::MomentBasedEstimator{T}) = 2*ccdf(Normal(), z_stats(e))
 
+# Lagrange multiplier test          #
+#-----------------------------------#
+
+## These test have the form
+## nλ'Qλ ∼ χ²(m-k_unrestricted) dof
+
+function LM_test{T <: MDEstimator}(e::MomentBasedEstimator{T})
+    w = impliedprob(e)
+    j = sum(w.*gradient(e.e.div, w).^2)
+    p = df(e) > 0 ? ccdf(Chisq(df(e)), j) : NaN
+    return j, clamp(p, eps(), Inf)
+end
+
+function LR_test{T <: MDEstimator}(e::MomentBasedEstimator{T})
+    j = objval(e)
+    p = df(e) > 0 ? ccdf(Chisq(df(e)), j) : NaN
+    return j, clamp(p, eps(), Inf)
+end
+
+
+ψ₃(e) = ψ₃(e.e.div)
+
+ψ₃(d::KullbackLeibler) = 1.0
+ψ₃(d::ModifiedKullbackLeibler) = 1.0
+ψ₃(d::FullyModifiedKullbackLeibler) = 1.0
+ψ₃(d::ChiSquared) = 0.0
+
+ψ₃(d::ReverseKullbackLeibler) = 2.0
+ψ₃(d::ModifiedReverseKullbackLeibler) = 2.0
+ψ₃(d::FullyModifiedReverseKullbackLeibler) = 2.0
+
+ψ₃(d::CressieRead) = d.α-1
+ψ₃(d::ModifiedCressieRead) = d.α-1
+ψ₃(d::FullyModifiedCressieRead) = d.α-1
+
+
+
+function LMe_test{T <: MDEstimator}(e::MomentBasedEstimator{T})
+    psi3 = ψ₃(e)
+    if psi3 != 2.0
+        η = multiplier_eta(e)
+        j = nobs(e)*η/(1-psi3/2)
+        p = df(e) > 0 ? ccdf(Chisq(df(e)), j) : NaN
+    else
+        j = NaN
+        p = NaN
+    end
+    return j, clamp(p, eps(), Inf)
+end
+
 # coef table                        #
 #-----------------------------------#
 
@@ -282,7 +427,7 @@ end
 # hack: fix solver                  #
 #-----------------------------------#
 
-
+fixsolver!(s::Ipopt.IpoptSolver) = s
 
 function fixsolver!(s::MathProgBase.SolverInterface.AbstractMathProgSolver)
     opt = Array(Any, length(s.options))
