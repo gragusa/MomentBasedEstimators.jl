@@ -99,6 +99,56 @@ end
             @test stderr(iv_gmm2s)≈stderr(iv_gmm2s_) atol = 1e-4
             @test objval(iv_gmm2s)≈objval(iv_gmm2s_)
         end
+
+        @testset "MD tests" begin
+            for est in (iv_kl, iv_cu, iv_el)
+                LM = LM_test(est)
+                LR = LR_test(est)
+                LMe = LMe_test(est)
+                J   = J_test(est)
+                @test LM[1] ≈ LR[1] atol = 1e-1
+                if isa(est.e.div, ReverseKullbackLeibler)
+                    @test isnan(LMe[1])
+                else
+                    @test LMe[1] ≈ LR[1] atol = 1e-2
+                end
+                @test J[1] ≈ LR[1] atol = 1e-1
+
+                @test LM[2] ≈ LR[2] atol = 1e-2
+                if isa(est.e.div, ReverseKullbackLeibler)
+                    @test isnan(LMe[2])
+                else
+                    @test LMe[2] ≈ LR[2] atol = 1e-2
+                end
+
+                @test J[2] ≈ LR[2] atol = 1e-2
+            end
+        end
+
+        @testset "MD Hessian" begin
+            for est in (iv_kl, iv_cu, iv_el)
+                HAD = MomentBasedEstimators.objhessian(est)
+                HFD = MomentBasedEstimators.objhessian(est, Val{:finitediff})
+                HBF = MomentBasedEstimators.objhessian(est, Val{:bruteforce})
+                V = vcov(est)
+                VR = vcov(est, robust=true)
+
+                @test norm(inv(HAD)-V, 2)< 1e-2
+                @test norm(inv(HFD)-V, 2)< 1e-2
+                @test norm(inv(HBF)-V, 2)< 1e-2
+
+                ## Low level
+                QQ(theta) = MomentBasedEstimators.Qhessian(est, theta)
+                cfg1 = ForwardDiff.HessianConfig(QQ, coef(est), ForwardDiff.Chunk{3}());
+
+                ## The function Qhessian calculate the hessian of
+                ## -∑γ(Nπ)
+                @test HAD ≈ -ForwardDiff.hessian(QQ, coef(est), cfg1)
+                @test HFD ≈ -Calculus.hessian(QQ, coef(est))
+
+            end
+        end
+
 end
 
 @testset "Instrumental variables.........(instrumental_variables_large.jl)" begin
