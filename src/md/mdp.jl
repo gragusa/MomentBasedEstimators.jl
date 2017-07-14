@@ -139,8 +139,8 @@ end
 
 function MathProgBase.jac_structure(e::MDP)
     n, m, m_eq, m_ineq = size(e)
-    rows = Array(Int64, e.gele)
-    cols = Array(Int64, e.gele)
+    rows = Array{Int64}(e.gele)
+    cols = Array{Int64}(e.gele)
     for j = 1:m+1, r = 1:n
         @inbounds rows[r+(j-1)*n] = j
         @inbounds cols[r+(j-1)*n] = r
@@ -150,8 +150,8 @@ end
 
 function MathProgBase.hesslag_structure(e::MDP)
     n, m, m_eq, m_ineq = size(e)
-    rows = Array(Int64, e.hele)
-    cols = Array(Int64, e.hele)
+    rows = Array{Int64}(e.hele)
+    cols = Array{Int64}(e.hele)
     for j = 1:n
         @inbounds rows[j] = j
         @inbounds cols[j] = j

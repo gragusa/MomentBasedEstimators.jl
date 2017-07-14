@@ -66,6 +66,7 @@ function MDEstimator(f::Function, theta::Vector;
                      data = nothing, wts = nothing,
                      div::Divergence = DEFAULT_DIVERGENCE,
                      kernel::SmoothingKernel = IdentitySmoother(),
+                     constraints = Unconstrained(),
                      s::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level=2, sb = "yes"))
     ## Set Moment Function
     g(theta) = data == nothing ? f(theta) : f(theta, data)
@@ -103,7 +104,7 @@ function MDEstimator(f::Function, theta::Vector;
         mf  = make_ana_mom_fun(MDEstimator, g, grad)
     end
 
-    MomentBasedEstimator(MDEstimator(mf, Unconstrained(), theta, lb, ub, glb, gub,
+    MomentBasedEstimator(MDEstimator(mf, constraints, theta, lb, ub, glb, gub,
                                      wlb, wub, div, w, ni, ni, n, p, m))
 end
 
@@ -117,45 +118,59 @@ end
 # end
 
 function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
-	   n, p, m = size(g)
-	   ξ₀ = [ones(n); startingval(g)]
-	   g.e.gele = Int((n+p)*(m+1)-p)
-	   g.e.hele = Int(n*p + n + (p+1)*p/2)
-	   g_L = getmfLB(g)
-	   g_U = getmfUB(g)
-	   u_L = [getwtsLB(g); getparLB(g)]
-	   u_U = [getwtsUB(g); getparUB(g)]
-	   MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
-	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status[1] = :Initialized
+    n, p, m = size(g)
+    ξ₀ = [ones(n); startingval(g)]
+    g.e.gele = Int((n+p)*(m+1)-p)
+    g.e.hele = Int(n*p + n + (p+1)*p/2)
+    g_L = getmfLB(g)
+    g_U = getmfUB(g)
+    u_L = [getwtsLB(g); getparLB(g)]
+    u_U = [getwtsUB(g); getparUB(g)]
+    MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
+    MathProgBase.setwarmstart!(g.m, ξ₀)
+    g.status[1] = :Initialized
+end
+
+function initialize!{M<:MomentFunction, V<:Divergence, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
+    n, p, m = size(g)
+    ξ₀ = [ones(n); startingval(g)]
+    g.e.gele = Int((n+p)*(m+1)-p)
+    g.e.hele = Int(n*p + n + (p+1)*p/2)
+    g_L = getmfLB(g)
+    g_U = getmfUB(g)
+    u_L = [getwtsLB(g); getparLB(g)]
+    u_U = [getwtsUB(g); getparUB(g)]
+    MathProgBase.loadproblem!(g.m, n+p, m+1, u_L, u_U, g_L, g_U, :Min, g.e)
+    MathProgBase.setwarmstart!(g.m, ξ₀)
+    g.status[1] = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
     n, p, m = size(g)
-	   ξ₀ = startingval(g)
-	   g.e.gele = @compat Int(p)
-	   g.e.hele = @compat Int(2*p)
-	   g_L = Float64[]
-	   g_U = Float64[]
-	   u_L = getparLB(g)
-	   u_U = getparUB(g)
+    ξ₀ = startingval(g)
+    g.e.gele = @compat Int(p)
+    g.e.hele = @compat Int(2*p)
+    g_L = Float64[]
+    g_U = Float64[]
+    u_L = getparLB(g)
+    u_U = getparUB(g)
     MathProgBase.loadproblem!(g.m, p, 0, u_L, u_U, g_L, g_U, :Min, g.e)
-	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status[1] = :Initialized
+    MathProgBase.setwarmstart!(g.m, ξ₀)
+    g.status[1] = :Initialized
 end
 
 function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
     n, p, m = size(g)
-	   ξ₀ = MomentBasedEstimators.startingval(g)
-	   g.e.gele = @compat Int(g.e.c.nc*p)
-	   g.e.hele = @compat Int(0)
-	   g_L = g.e.c.hlb
-	   g_U = g.e.c.hub
-	   u_L = getparLB(g)
-	   u_U = getparUB(g)
+    ξ₀ = MomentBasedEstimators.startingval(g)
+    g.e.gele = @compat Int(g.e.c.nc*p)
+    g.e.hele = @compat Int(0)
+    g_L = g.e.c.hlb
+    g_U = g.e.c.hub
+    u_L = getparLB(g)
+    u_U = getparUB(g)
     MathProgBase.loadproblem!(g.m, p, g.e.c.nc, u_L, u_U, g_L, g_U, :Min, g.e)
-	   MathProgBase.setwarmstart!(g.m, ξ₀)
-	   g.status[1] = :Initialized
+    MathProgBase.setwarmstart!(g.m, ξ₀)
+    g.status[1] = :Initialized
 end
 
 ################################################################################
@@ -183,7 +198,7 @@ function check_constraint_sanity(k, x0, h::Function, hlb, hub)
 end
 
 ## This return a constrained version of MomentBasedEstimator
-function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator)
+function constrained{T<:GMMEstimator}(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator{T})
     p = npar(g); chk = check_constraint_sanity(p, startingval(g), h, hlb, hub)
     r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array{Float64}(p), Array{Float64}(p, p))
     if typeof(g.e.mf) == MomentBasedEstimators.FADMomFun
@@ -208,6 +223,30 @@ function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstima
 
     MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
 end
+
+## This return a constrained version of MomentBasedEstimator{MDEstimator}
+function constrained{T<:MDEstimator}(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator{T})
+    p = npar(g); chk = check_constraint_sanity(p, startingval(g), h, hlb, hub)
+    r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array{Float64}(p), Array{Float64}(p, p))
+    ce = MDEstimator(copy(g.e.mf),
+                      Constrained(h, chk...),
+                      copy(g.e.x0),
+                      copy(g.e.lb),
+                      copy(g.e.ub),
+                      copy(g.e.glb),
+                      copy(g.e.gub),
+                      copy(g.e.mgr),
+                      copy(g.e.ist),
+                      copy(g.e.W),
+                      copy(g.e.wtg),
+                      copy(g.e.gele),
+                      copy(g.e.hele),
+                      size(g)...)
+
+    MomentBasedEstimator(ce, r, g.s, g.m, :Uninitialized)
+end
+
+
 
 ################################################################################
 ## Update solver

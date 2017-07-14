@@ -1,6 +1,6 @@
 ## Instrumental variables problems
 
-dt = readcsv("iv.csv");
+dt = readcsv("iv.csv")
 
 y = dt[:,1];
 x = dt[:,2:4];
@@ -28,12 +28,77 @@ Hwsl(θ, p, λ) = zeros(3,3);
 
 iv_kl = MDEstimator(f, [.0, .0, .0], div = KullbackLeibler(), grad = (Dsn, Dws, Dsl, Hwsl))
 iv_el = MDEstimator(f, [.0, .0, .0], div = ReverseKullbackLeibler(), grad = (Dsn, Dws, Dsl, Hwsl))
-iv_cu = MDEstimator(f, [.0, .0, .0], div = ChiSquared(), grad = (Dsn, Dws, Dsl, Hwsl))
+iv_cu = MDEstimator(f, [.0, .0, .0], div = ChiSquared(), grad = (Dsn, Dws, Dsl, Hwsl));
 
 estimate!(iv_kl)
 estimate!(iv_el)
 estimate!(iv_cu)
 
+
+
+## OV test KullbackLeibler, CUE, ReverseKullbackLeibler
+## ----------------------------------------------------
+#
+# using Base.Test
+#
+# for est in (iv_kl, iv_cu, iv_el)
+#     println(est)
+#     LM = LM_test(est)
+#     LR = LR_test(est)
+#     LMe = LMe_test(est)
+#     J   = J_test(est)
+#     @test LM[1] ≈ LR[1] atol = 1e-1
+#     if isa(est.e.div, ReverseKullbackLeibler)
+#         @test isnan(LMe[1])
+#     else
+#         @test LMe[1] ≈ LR[1] atol = 1e-2
+#     end
+#     @test J[1] ≈ LR[1] atol = 1e-1
+#
+#     @test LM[2] ≈ LR[2] atol = 1e-2
+#     if isa(est.e.div, ReverseKullbackLeibler)
+#         @test isnan(LMe[2])
+#     else
+#         @test LMe[2] ≈ LR[2] atol = 1e-2
+#     end
+#
+#     @test J[2] ≈ LR[2] atol = 1e-2
+# end
+#
+
+
+## Hessian KullbackLeibler, CUE, ReverseKullbackLeibler
+## ----------------------------------------------------
+# est = iv_el
+# for est in (iv_kl, iv_cu, iv_el)
+#     @time HAD = objhessian(est)
+#     @time HFD = objhessian(est, Val{:finitediff})
+#     @time HBF = objhessian(est, Val{:bruteforce})
+#     V = vcov(est)
+#     VR = vcov(est, robust=true)
+#
+#     @test norm(inv(HAD)-V, 2)< 1e-2
+#     @test norm(inv(HFD)-V, 2)< 1e-2
+#     @test norm(inv(HBF)-V, 2)< 1e-2
+#
+#     ## Low level
+#     QQ(theta) = MomentBasedEstimators.Qhessian(est, theta)
+#     cfg1 = ForwardDiff.HessianConfig(QQ, coef(est), ForwardDiff.Chunk{3}());
+#
+#     ## The function Qhessian calculate the hessian of
+#     ## -∑γ(Nπ)
+#     @test HAD == -ForwardDiff.hessian(QQ, coef(est), cfg1)
+#     @test HFD == -Calculus.hessian(QQ, coef(est))
+#
+# end
+
+# vcov(iv_cu, robust=true)
+#
+# vcov(iv_cu)
+#
+#
+#
+#
 
 ## GMM using linear algebra
 

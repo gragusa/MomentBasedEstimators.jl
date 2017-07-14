@@ -7,8 +7,16 @@ function show_extra{T <: GMMEstimator}(me::MomentBasedEstimator{T})
     "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
 end
 
-show_extra{T <: MDEstimator}(me::MomentBasedEstimator{T}) = "\n"
-
+function show_extra{T <: MDEstimator}(me::MomentBasedEstimator{T})
+    j, p = LR_test(me)
+    "\nLR-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+    j, p = LM_test(me)
+    "\nLM-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+    j, p = LMe_test(me)
+    "\nLMe-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+    j, p = LMe_test(me)
+    "\nJ-test: $(round(j, 3)) (P-value: $(round(p, 3)))\n"
+end
 
 function Base.show{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
   s = symbolfy(me)
@@ -17,7 +25,7 @@ function Base.show{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
   if me.status[1] == :Solved
     # Only gives information if the solver
     # converged
-    if (status(me) == :Optimal)
+    if (status(me) == :Optimal) || (status(me) == :GenoudOptimal)
       # get coef table and j-test
       ct = coeftable(me)
       # print coefficient table
@@ -26,7 +34,7 @@ function Base.show{T<:MomentBasedEstimator}(io::IO, ::MIME"text/plain", me::T)
       # Then show extra information for this type
       println(io, show_extra(me))
     else
-      println("The optimization did not converge to a local solution")
+      println("The optimization did not converge")
     end
   end
 end
