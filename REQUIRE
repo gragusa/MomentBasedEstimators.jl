@@ -1,4 +1,4 @@
-julia 0.6-
+julia 0.6
 StatsBase 0.6.10+
 ForwardDiff
 MathProgBase
@@ -7,4 +7,3 @@ Distributions
 CovarianceMatrices
 Divergences
 Ipopt
-Compat
