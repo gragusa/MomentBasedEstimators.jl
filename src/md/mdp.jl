@@ -1,4 +1,4 @@
-type MomentMatrix
+mutable struct MomentMatrix
     X::Array{Float64, 2} ## Unsmoothed
     S::Array{Float64, 2} ## Smoothed
     g_L::Vector
@@ -10,7 +10,7 @@ type MomentMatrix
     m_ineq::Int64   ## Cols of X[:,m_eq+1:end] => H
 end
 
-type MDP{F <: MomentMatrix, T <: Divergence, S <: MathProgBase.AbstractMathProgSolver} <: GenericMomentBasedEstimator
+mutable struct MDP{F <: MomentMatrix, T <: Divergence, S <: MathProgBase.AbstractMathProgSolver} <: GenericMomentBasedEstimator
     mm::F
     div::T
     gele::Int64
@@ -18,7 +18,7 @@ type MDP{F <: MomentMatrix, T <: Divergence, S <: MathProgBase.AbstractMathProgS
     solver::S
 end
 
-immutable MinimumDivergenceProblem{T <: MathProgBase.AbstractMathProgModel, S <: MDP}
+struct MinimumDivergenceProblem{T <: MathProgBase.AbstractMathProgModel, S <: MDP}
     m::T
     e::S
 end

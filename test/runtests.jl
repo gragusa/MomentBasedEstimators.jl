@@ -33,11 +33,7 @@ facts("Testing basic interface") do
         ## The following test is conditional on version.
         ## What changed is the tol for pinv between 0.3 and 0.4
         ##
-        if VERSION < v"0.4-"
-            Jt, pt = (1.7433378725860427,0.41825292894063326)
-        else
-            Jt, pt = (3.0875508893757986,0.21357324340764258)
-        end
+        Jt, pt = (3.0875508893757986,0.21357324340764258)
         ## This is the stata J-test
         ov = 1.97522
         @fact Je --> roughly(Jt, atol=1e-3)

@@ -73,14 +73,14 @@ af = @anon theta->z.*(y-x*theta)
 af([.1,0,0])
 
 
-type dummy
+mutable struct dummy
     a::DataType
 end
 
 uu = dummy(af)
 
 
-type dummy_
+mutable struct dummy_
     a::Function
 end
 

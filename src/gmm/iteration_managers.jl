@@ -2,19 +2,21 @@
 # Iteration managers #
 # ------------------ #
 
-abstract IterationManager
+abstract type IterationManager 
 
-immutable OneStepGMM <: IterationManager
+end
+
+struct OneStepGMM <: IterationManager
     k::RobustVariance
     demean::Bool
 end
 
-immutable TwoStepGMM <: IterationManager
+struct TwoStepGMM <: IterationManager
     k::RobustVariance
     demean::Bool
 end
 
-immutable IterativeGMM <: IterationManager
+struct IterativeGMM <: IterationManager
     k::RobustVariance
     demean::Bool
     tol::Float64
@@ -35,7 +37,7 @@ function IterativeGMM(;k::RobustVariance=HC0(), demean::Bool = false, tol::Float
     IterativeGMM(k, demean, tol, maxiter)
 end
 
-type IterationState
+mutable struct IterationState
     n::Array{Int, 1}
     change::Array{Float64, 1}
     prev::Array{Float64, 1}  # previous value

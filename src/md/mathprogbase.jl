@@ -16,11 +16,11 @@ MathProgBase.isconstrlinear(e::MDEstimator, i::Int64) = false
 
 MathProgBase.features_available(e::MDEstimator) = [:Grad, :Jac, :Hess]
 
-function MathProgBase.eval_f{M, V, S, T<:Unweighted}(e::MDEstimator{M, V, S, T}, u)
+function MathProgBase.eval_f(e::MDEstimator{M, V, S, T}, u) where {M, V, S, T<:Unweighted}
     Divergences.evaluate(e.div, u[1:nobs(e)])
 end
 
-function MathProgBase.eval_grad_f{M, V, S, T<:Unweighted}(e::MDEstimator{M, V, S, T}, grad_f, u)
+function MathProgBase.eval_grad_f(e::MDEstimator{M, V, S, T}, grad_f, u) where {M, V, S, T<:Unweighted}
     n, k, m = size(e)
     Divergences.gradient!(grad_f, e.div, u)
     @simd for j=(n+1):(n+k)
@@ -28,7 +28,7 @@ function MathProgBase.eval_grad_f{M, V, S, T<:Unweighted}(e::MDEstimator{M, V, S
     end
 end
 
-function MathProgBase.eval_g{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V,S,T}, g, u)
+function MathProgBase.eval_g(e::MDEstimator{M, V,S,T}, g, u) where {M, V, S<:Unconstrained, T<:Unweighted}
     n, k, m = size(e)
     p = u[1:n]
     θ = u[(n+1):(n+k)]
@@ -36,7 +36,7 @@ function MathProgBase.eval_g{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimat
     @inbounds g[m+1]  = sum(p)
 end
 
-function MathProgBase.jac_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V, S, T})
+function MathProgBase.jac_structure(e::MDEstimator{M, V, S, T}) where {M, V, S<:Unconstrained, T<:Unweighted}
     n, k, m = size(e)
     rows = Array(Int64, e.gele)
     cols = Array(Int64, e.gele)
@@ -49,7 +49,7 @@ function MathProgBase.jac_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MD
     rows, cols
 end
 
-function MathProgBase.eval_jac_g{M<:FADMomFun, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V,S,T}, J, u)
+function MathProgBase.eval_jac_g(e::MDEstimator{M, V,S,T}, J, u) where {M<:FADMomFun, V, S<:Unconstrained, T<:Unweighted}
     n, k, m = size(e)
     p  = u[1:n]
     θ  = u[(n+1):(n+k)]
@@ -67,7 +67,7 @@ function MathProgBase.eval_jac_g{M<:FADMomFun, V, S<:Unconstrained, T<:Unweighte
      end
 end
 
-function MathProgBase.eval_jac_g{M <: AnaMomFun, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V,S,T}, J, u)
+function MathProgBase.eval_jac_g(e::MDEstimator{M, V,S,T}, J, u) where {M <: AnaMomFun, V, S<:Unconstrained, T<:Unweighted}
     n, k, m = size(e)
     p  = u[1:n]
     θ  = u[(n+1):(n+k)]
@@ -84,7 +84,7 @@ function MathProgBase.eval_jac_g{M <: AnaMomFun, V, S<:Unconstrained, T<:Unweigh
     end
 end
 
-function MathProgBase.hesslag_structure{M, V, S<:Unconstrained, T<:Unweighted}(e::MDEstimator{M, V, S, T})
+function MathProgBase.hesslag_structure(e::MDEstimator{M, V, S, T}) where {M, V, S<:Unconstrained, T<:Unweighted}
     n, k, m = size(e)
     rows = Array(Int64, e.hele)
     cols = Array(Int64, e.hele)
@@ -112,7 +112,7 @@ function MathProgBase.hesslag_structure{M, V, S<:Unconstrained, T<:Unweighted}(e
     rows, cols
 end
 
-function MathProgBase.eval_hesslag{M<:FADMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)
+function MathProgBase.eval_hesslag(e::MDEstimator{M, V, S, T}, H, u, σ, λ) where {M<:FADMomFun, V, S<:Unconstrained, T}
     n, k, m = size(e)
     p = u[1:n]
     θ = u[(n+1):(n+k)]
@@ -132,7 +132,7 @@ function MathProgBase.eval_hesslag{M<:FADMomFun, V, S<:Unconstrained, T}(e::MDEs
     @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ)::Matrix{Float64})
 end
 
-function MathProgBase.eval_hesslag{M<:AnaGradMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)
+function MathProgBase.eval_hesslag(e::MDEstimator{M, V, S, T}, H, u, σ, λ) where {M<:AnaGradMomFun, V, S<:Unconstrained, T}
     n, k, m = size(e)
     p = u[1:n]
     θ = u[(n+1):(n+k)]
@@ -152,7 +152,7 @@ function MathProgBase.eval_hesslag{M<:AnaGradMomFun, V, S<:Unconstrained, T}(e::
     @inbounds H[n*k+n+1:e.hele] = gettril(ForwardDiff.hessian(wsl, θ)::Matrix{Float64})
 end
 
-function MathProgBase.eval_hesslag{M<:AnaFullMomFun, V, S<:Unconstrained, T}(e::MDEstimator{M, V, S, T}, H, u, σ, λ)
+function MathProgBase.eval_hesslag(e::MDEstimator{M, V, S, T}, H, u, σ, λ) where {M<:AnaFullMomFun, V, S<:Unconstrained, T}
     n, k, m = size(e)
     p = u[1:n]
     θ = u[(n+1):(n+k)]

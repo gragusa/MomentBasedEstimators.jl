@@ -1,13 +1,15 @@
-abstract SmoothingKernel
+abstract type SmoothingKernel 
 
-immutable IdentitySmoother <: SmoothingKernel
+end
+
+struct IdentitySmoother <: SmoothingKernel
     S::Float64
     κ₁::Float64
     κ₂::Float64
     κ₃::Float64
 end
 
-immutable TruncatedSmoother <: SmoothingKernel
+struct TruncatedSmoother <: SmoothingKernel
     ξ::Integer
     S::Float64
     smoother::Function
@@ -16,7 +18,7 @@ immutable TruncatedSmoother <: SmoothingKernel
     κ₃::Float64
 end
 
-immutable BartlettSmoother <: SmoothingKernel
+struct BartlettSmoother <: SmoothingKernel
     ξ::Integer
     S::Float64
     smoother::Function
@@ -28,7 +30,7 @@ end
 IdentitySmoother() = IdentitySmoother(1.0, 1.0, 1.0, 1.0)
 
 function TruncatedSmoother(ξ::Integer)
-    function smoother{T}(G::Array{T, 2})
+    function smoother(G::Array{T, 2}) where T
         N, M = size(G)
         nG   = zeros(T, N, M)
         for m=1:M
@@ -46,7 +48,7 @@ function TruncatedSmoother(ξ::Integer)
 end
 
 function BartlettSmoother(ξ::Integer)
-    function smoother{T}(G::Array{T, 2})
+    function smoother(G::Array{T, 2}) where T
         N, M = size(G)
         nG   = zeros(T, N, M)
         St   = (2.0*ξ+1.0)/2.0
@@ -71,5 +73,5 @@ bw(k::SmoothingKernel) = k.S
 κ₁(k::SmoothingKernel) = k.κ₁
 κ₂(k::SmoothingKernel) = k.κ₂
 
-smooth{T}(g::Array{T, 2}, k::IdentitySmoother) = g
-smooth{T}(g::Array{T, 2}, k::SmoothingKernel) = k.smoother(g)
+smooth(g::Array{T, 2}, k::IdentitySmoother) where {T} = g
+smooth(g::Array{T, 2}, k::SmoothingKernel) where {T} = k.smoother(g)
