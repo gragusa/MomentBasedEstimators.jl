@@ -1,18 +1,18 @@
-abstract GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator
-abstract Constraint
-abstract Weighting
+abstract type GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator
+abstract type Constraint
+abstract type Weighting
 
-abstract MomentFunction
+abstract type MomentFunction
 
-abstract AnaMomFun <: MomentFunction
+abstract type AnaMomFun <: MomentFunction
 
-immutable FADMomFun{F1, F2, K} <: MomentFunction
+struct FADMomFun{F1, F2, K} <: MomentFunction
     g::F1            ## Moment Function
     s::F2            ## Smoothed moment function
     kern::K
 end
 
-immutable AnaGradMomFun{F1, F2, F3, F4, F5, K} <: AnaMomFun
+struct AnaGradMomFun{F1, F2, F3, F4, F5, K} <: AnaMomFun
     g::F1            ## Moment Function
     s::F2            ## Smoothed moment function
     Dsn::F3
@@ -21,7 +21,7 @@ immutable AnaGradMomFun{F1, F2, F3, F4, F5, K} <: AnaMomFun
     kern::K
 end
 
-immutable AnaFullMomFun{F1, F2, F3, F4, F5, F6, K} <: AnaMomFun
+struct AnaFullMomFun{F1, F2, F3, F4, F5, F6, K} <: AnaMomFun
     g::F1            ## Moment fun
     s::F2            ## Smoothed moment fun
     Dsn::F3
@@ -31,14 +31,14 @@ immutable AnaFullMomFun{F1, F2, F3, F4, F5, F6, K} <: AnaMomFun
     kern::K
 end
 
-type MomentBasedEstimatorResults
+mutable struct MomentBasedEstimatorResults
     status::Symbol
     objval::Float64
     coef::Array{Float64, 1}
     H::Array{Float64,2}      ## Hessian of the objective function
 end
 
-type GMMEstimator{M<:MomentFunction, V<:IterationManager, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
+mutable struct GMMEstimator{M<:MomentFunction, V<:IterationManager, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
     mf::M
     c::S
     x0::Array{Float64, 1}
@@ -57,7 +57,7 @@ type GMMEstimator{M<:MomentFunction, V<:IterationManager, S<:Constraint, T<:Weig
     nmom::Int64
 end
 
-type MDEstimator{M<:MomentFunction, V<:Divergence, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
+mutable struct MDEstimator{M<:MomentFunction, V<:Divergence, S<:Constraint, T<:Weighting} <: GenericMomentBasedEstimator
     mf::M
     c::S
     x0::Array{Float64, 1}
@@ -76,18 +76,18 @@ type MDEstimator{M<:MomentFunction, V<:Divergence, S<:Constraint, T<:Weighting} 
     nmom::Int64
 end
 
-type MomentBasedEstimatorOptions
+mutable struct MomentBasedEstimatorOptions
     ##options
     ##maybe optimization options?
 end
 
-immutable Unweighted <: Weighting end
+struct Unweighted <: Weighting end
 
-immutable Weighted <: Weighting
+struct Weighted <: Weighting
     wtg::WeightVec{Float64}
 end
 
-immutable Unconstrained <: Constraint end
+struct Unconstrained <: Constraint end
 
 type Constrained <: Constraint
     h::Function
@@ -96,7 +96,7 @@ type Constrained <: Constraint
     nc::Int64  ## Number of constraints: row of h(θ)
 end
 
-immutable MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MathProgBase.AbstractMathProgSolver, M<:MathProgBase.AbstractMathProgModel}
+struct MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MathProgBase.AbstractMathProgSolver, M<:MathProgBase.AbstractMathProgModel}
     e::T
     r::MomentBasedEstimatorResults
     s::S
