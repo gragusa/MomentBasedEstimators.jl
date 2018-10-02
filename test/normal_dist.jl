@@ -2,7 +2,7 @@
 ### This test was lifted from the vingette for the R gmm package.
 #################################################################
 using Distributions
-
+using Linearalgebra
 srand(42)
 x = rand(Normal(4, 2), 1000)
 
@@ -13,16 +13,14 @@ function h_norm(θ)
     return [m1 m2 m3]
 end
 
-
-
-step_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM())
+step_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = Matrix(I, 3, 3), mgr = OneStepGMM())
 @time estimate!(step_1);
 
 ch(θ) = [1 -1]*θ
 hlb = [0.]
 hub = [0.]
 
-cstep_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = eye(3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
+cstep_1 = GMMEstimator(h_norm, [1.0, 1.0], initialW = Matrix(I, 3, 3), mgr = OneStepGMM(), constraints = Constrained(ch, hlb, hub, 1))
 
 step_2_hac = GMMEstimator(h_norm, coef(step_1), initialW = MomentBasedEstimators.optimal_W(step_1, QuadraticSpectralKernel(0.91469)));
 
@@ -32,10 +30,10 @@ estimate!(step_2_hac);
 step_2_iid = GMMEstimator(h_norm, coef(step_1), initialW = optimal_W(step_1, HC0()));
 estimate!(step_2_iid);
 
-gmm_qs_mgr = GMMEstimator(h_norm, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)));
+gmm_qs_mgr = GMMEstimator(h_norm, [1.,1.], initialW = Matrix(I, 3, 3), mgr = TwoStepGMM(QuadraticSpectralKernel(0.91469)));
 estimate!(gmm_qs_mgr);
 
-gmm_iid_mgr = GMMEstimator(h_norm, [1.,1.], initialW = eye(3), mgr = TwoStepGMM(HC0()));
+gmm_iid_mgr = GMMEstimator(h_norm, [1.,1.], initialW = Matrix(I, 3, 3), mgr = TwoStepGMM(HC0()));
 estimate!(gmm_iid_mgr);
 
 ### MDE

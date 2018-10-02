@@ -15,6 +15,8 @@ using Compat
 using Calculus
 import CovarianceMatrices.RobustVariance
 
+using SparseArrays
+
 const DEFAULT_DIVERGENCE = KullbackLeibler()
 
 
