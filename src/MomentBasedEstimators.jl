@@ -7,8 +7,9 @@ using StatsBase
 using Reexport
 using Distributions
 @reexport using Divergences
-using KNITRO
-using Base.LinAlg.BLAS
+#using KNITRO
+using LinearAlgebra
+using LinearAlgebra.BLAS
 using Compat
 @reexport using CovarianceMatrices
 using Calculus

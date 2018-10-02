@@ -1,13 +1,13 @@
-abstract SmoothingKernel
+abstract type SmoothingKernel
 
-immutable IdentitySmoother <: SmoothingKernel
+struct IdentitySmoother <: SmoothingKernel
     S::Float64
     κ₁::Float64
     κ₂::Float64
     κ₃::Float64
 end
 
-immutable TruncatedSmoother <: SmoothingKernel
+struct TruncatedSmoother <: SmoothingKernel
     ξ::Integer
     S::Float64
     smoother::Function
@@ -16,7 +16,7 @@ immutable TruncatedSmoother <: SmoothingKernel
     κ₃::Float64
 end
 
-immutable BartlettSmoother <: SmoothingKernel
+struct BartlettSmoother <: SmoothingKernel
     ξ::Integer
     S::Float64
     smoother::Function

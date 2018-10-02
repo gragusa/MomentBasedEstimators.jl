@@ -2,19 +2,19 @@
 # Iteration managers #
 # ------------------ #
 
-abstract IterationManager
+abstract type IterationManager
 
-immutable OneStepGMM <: IterationManager
+struct OneStepGMM <: IterationManager
     k::RobustVariance
     demean::Bool
 end
 
-immutable TwoStepGMM <: IterationManager
+struct TwoStepGMM <: IterationManager
     k::RobustVariance
     demean::Bool
 end
 
-immutable IterativeGMM <: IterationManager
+struct IterativeGMM <: IterationManager
     k::RobustVariance
     demean::Bool
     tol::Float64

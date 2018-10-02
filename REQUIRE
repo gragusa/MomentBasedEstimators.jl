@@ -1,4 +1,4 @@
-julia 0.6
+julia 0.7
 StatsBase 0.6.10+
 PDMats 0.3+
 ForwardDiff
@@ -8,4 +8,5 @@ Distributions
 CovarianceMatrices
 Divergences
 Ipopt
-KNITRO
+Compat
+Calculus
