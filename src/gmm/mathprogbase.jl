@@ -15,7 +15,7 @@ MathProgBase.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
 function MathProgBase.eval_f(e::GMMEstimator, theta)
     idx = e.ist.n[1]
     gn = vec(sum(e.mf.s(theta), dims=1))
-    Base.dot(gn, e.W[idx]*gn)
+    LinearAlgebra.dot(gn, e.W[idx]*gn)
 end
 
 MathProgBase.eval_g(e::GMMEstimator{M, V, T, S}, g, theta) where {M, V, T<:Unconstrained, S} = nothing
