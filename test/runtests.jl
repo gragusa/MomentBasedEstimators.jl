@@ -1,5 +1,5 @@
 using MomentBasedEstimators
-using FactCheck
+using Test
 
 facts("Testing basic interface") do
     context("Test from vignette for the R gmm package. Automatic Differentiation") do
@@ -7,19 +7,20 @@ facts("Testing basic interface") do
         cft = [3.843, 2.067]
         cfe = coef(step_1)
         sdt = [0.06527666675890574,0.04672629429325811]
-        sde = stderr(step_1, TwoStepGMM())
+        sde = stderror(step_1, TwoStepGMM())
         for j = 1:2
-            @fact cfe[j] --> roughly(cft[j], 0.01)
-            @fact sde[j] --> roughly(sdt[j], 0.01)
+            @test cfe[j] ≈ cft[j] atol = 0.001
+            @test sde[j] ≈ sdt[j] atol = 0.00001
         end
         Je, pe = MomentBasedEstimators.J_test(gmm_iid_mgr)
         ## This is the objective value, which is the J-test
         ## for other softwares
         ov     = 1.4398836656920428
         Jt, pt = (1.4378658264483137,0.23048500853597673)
-        @fact Je --> roughly(Jt, atol = 0.01)
-        @fact pe --> roughly(pt, atol = 0.01)
-        @fact objval(gmm_iid_mgr) --> roughly(ov, atol = 0.1)
+        @test Je ≈ Jt atol = 0.0000001
+        @test pe ≈ pt atol = 0.0000001
+        @test objval(gmm_iid_mgr) ≈ ov atol = 0.0001
+        @test objval(gmm_iid_mgr) < ov
     end
 
     context("Example 13.5 from Greene (2012) -- verified with Stata") do
@@ -27,7 +28,7 @@ facts("Testing basic interface") do
         cf_stata = [3.358432, .1244622]
         cfe = coef(two_step)
         for j = 1:2
-            @fact cfe[j] --> roughly(cf_stata[j], atol=1e-3)
+            @test cfe[j] ≈ cf_stata[j] atol=1e-3
         end
         Je, pe = MomentBasedEstimators.J_test(two_step)
         ## The following test is conditional on version.
@@ -40,9 +41,10 @@ facts("Testing basic interface") do
         end
         ## This is the stata J-test
         ov = 1.97522
-        @fact Je --> roughly(Jt, atol=1e-3)
-        @fact pe --> roughly(pt, atol=1e-3)
-        @fact objval(two_step) --> roughly(ov, atol = 0.1)
+        @test Je ≈ Jt atol=1e-6
+        @test pe ≈ pt atol=1e-6
+        @test objval(two_step) ≈ ov atol = 01e-03
+        @test objval(two_step) < ov
     end
 
     context("Instrumental variables -- verified with Stata") do
@@ -68,51 +70,51 @@ facts("Testing basic interface") do
     end
     context("Instrumental variables large --- verified by asymptotics") do
         include("instrumental_variables_large.jl")
-        @fact status(gmm_base)    --> :Optimal
-        @fact status(gmm_one)     --> :Optimal
-        @fact status(el_base)     --> :Optimal
-        @fact status(kl_base)     --> :Optimal
-        @fact status(cue_base)    --> :Optimal
-        @fact status(cue_uncon)   --> :Optimal
-        @fact status(kl_ana_grad) --> :Optimal
-        @fact status(kl_ana_full) --> :Optimal
+        @test status(gmm_base)    == :Optimal
+        @test status(gmm_one)     == :Optimal
+        @test status(el_base)     == :Optimal
+        @test status(kl_base)     == :Optimal
+        @test status(cue_base)    == :Optimal
+        @test status(cue_uncon)   == :Optimal
+        @test status(kl_ana_grad) == :Optimal
+        @test status(kl_ana_full) == :Optimal
 
-        @fact coef(el_base) --> roughly(coef(kl_base), 0.01)
-        @fact coef(kl_base) --> roughly(coef(kl_ana_full))
+        @test coef(el_base) ≈ coef(kl_base)  atol = 0.01
+        @test coef(kl_base) ≈ coef(kl_ana_full)
 
-        @fact objval(kl_base) --> roughly(objval(kl_ana_full))
+        @test objval(kl_base) ≈ objval(kl_ana_full)
 
-        @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
-        @fact vcov(kl_base)  --> roughly(vcov(kl_ana_full))
-        @fact vcov(gmm_base) --> roughly(vcov(el_base), 0.01)
+        @test vcov(kl_base)  ≈ vcov(kl_ana_full)
+        @test vcov(kl_base)  ≈ vcov(kl_ana_full)
+        @test vcov(gmm_base) ≈ vcov(el_base) atol = 0.01
 
-        @fact vcov(el_base, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, weighted = false)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, weighted = false) --> roughly(vcov(gmm_base), 0.001)
+        @test vcov(el_base, weighted = false)      ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_base, weighted = false)      ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_ana_grad, weighted = false)  ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_ana_full, weighted = false)  ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(cue_base, weighted = false)     ≈ vcov(gmm_base) atol = 0.001
 
-        @fact vcov(el_base, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_base, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_grad, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(kl_ana_full, weighted = true)  --> roughly(vcov(gmm_base), 0.001)
-        @fact vcov(cue_base, weighted = true) --> roughly(vcov(gmm_base), 0.001)
+        @test vcov(el_base, weighted = true)       ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_base, weighted = true)       ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_ana_grad, weighted = true)   ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(kl_ana_full, weighted = true)   ≈ vcov(gmm_base) atol = 0.001
+        @test vcov(cue_base, weighted = true) ≈ vcov(gmm_base) atol =  0.001
 
-        @fact stderr(gmm_base)' --> sqrt(vcov(gmm_base))
+        @test stderr(gmm_base)' --> sqrt(vcov(gmm_base))
 
-        @fact stderr(kl_base)' --> sqrt(vcov(kl_base))
-        @fact stderr(el_base)' --> sqrt(vcov(el_base))
+        @test stderr(kl_base)' --> sqrt(vcov(kl_base))
+        @test stderr(el_base)' --> sqrt(vcov(el_base))
 
-        @fact stderr(kl_base, weighted = true) --> stderr(kl_base)
-        @fact stderr(el_base, weighted = true) --> stderr(el_base)
+        @test stderr(kl_base, weighted = true) --> stderr(kl_base)
+        @test stderr(el_base, weighted = true) --> stderr(el_base)
 
-        @fact vcov(kl_base_truncated)  --> roughly(vcov(kl_base), 0.01)
-        @fact vcov(cue_base_truncated) --> roughly(vcov(cue_base), 0.01)
+        @test vcov(kl_base_truncated)  --> roughly(vcov(kl_base), 0.01)
+        @test vcov(cue_base_truncated) --> roughly(vcov(cue_base), 0.01)
 
-        @fact J_test(kl_base_truncated)[1] --> roughly(J_test(kl_base)[1], 0.05)
-        @fact J_test(cue_base_truncated)[1]  --> roughly(J_test(cue_base)[1], 0.16)
-        @fact J_test(kl_base_truncated)[2] --> roughly(J_test(kl_base)[2], 0.02)
-        @fact J_test(cue_base_truncated)[2]  --> roughly(J_test(cue_base)[2], 0.02)
+        @test J_test(kl_base_truncated)[1] --> roughly(J_test(kl_base)[1], 0.05)
+        @test J_test(cue_base_truncated)[1]  --> roughly(J_test(cue_base)[1], 0.16)
+        @test J_test(kl_base_truncated)[2] --> roughly(J_test(kl_base)[2], 0.02)
+        @test J_test(cue_base_truncated)[2]  --> roughly(J_test(cue_base)[2], 0.02)
 
 
         tmp = J_test(gmm_base)

@@ -1,10 +1,10 @@
-abstract type GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator
-abstract type Constraint
-abstract type Weighting
+abstract type GenericMomentBasedEstimator <: MathProgBase.AbstractNLPEvaluator end
+abstract type Constraint end
+abstract type Weighting end
 
-abstract type MomentFunction
+abstract type MomentFunction end
 
-abstract type AnaMomFun <: MomentFunction
+abstract type AnaMomFun <: MomentFunction end
 
 struct FADMomFun{F1, F2, K} <: MomentFunction
     g::F1            ## Moment Function
@@ -84,19 +84,19 @@ end
 struct Unweighted <: Weighting end
 
 struct Weighted <: Weighting
-    wtg::WeightVec{Float64}
+    wtg::StatsBase.Weights{Float64}
 end
 
 struct Unconstrained <: Constraint end
 
-type Constrained <: Constraint
+mutable struct Constrained <: Constraint
     h::Function
     hlb::Array{Float64, 1}
     hub::Array{Float64, 1}
     nc::Int64  ## Number of constraints: row of h(θ)
 end
 
-struct MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MathProgBase.AbstractMathProgSolver, M<:MathProgBase.AbstractMathProgModel}
+mutable struct MomentBasedEstimator{T<:GenericMomentBasedEstimator, S<:MathProgBase.AbstractMathProgSolver, M<:MathProgBase.AbstractMathProgModel}
     e::T
     r::MomentBasedEstimatorResults
     s::S
@@ -108,16 +108,16 @@ end
 function MomentBasedEstimator(e::GenericMomentBasedEstimator)
     MomentBasedEstimator(e, MomentBasedEstimatorResults(
                                                         :Unsolved, 0.0,
-                                                        Array(Float64, npar(e)),
-                                                        Array(Float64, npar(e), npar(e))),
+                                                        Array{Float64}(undef, npar(e)),
+                                                        Array{Float64}(undef, npar(e), npar(e))),
                          DEFAULT_SOLVER(e),
                          MathProgBase.NonlinearModel(DEFAULT_SOLVER(e)),
                          [:Uninitialized])
 end
 
-setW0(mgr::TwoStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:2]
-setW0(mgr::OneStepGMM, m::Int64) = [Array(Float64, m, m) for i=1:1]
-setW0(mgr::IterativeGMM, m::Int64) = [Array(Float64, m, m) for i=1:mgr.maxiter+1]
+setW0(mgr::TwoStepGMM, m::Int64) = [Array{Float64}(undef, m, m) for i=1:2]
+setW0(mgr::OneStepGMM, m::Int64) = [Array{Float64}(undef, m, m) for i=1:1]
+setW0(mgr::IterativeGMM, m::Int64) = [Array{Float64}(undef, m, m) for i=1:mgr.maxiter+1]
 
 function make_fad_mom_fun(g::Function,
                           kernel::SmoothingKernel = IdentitySmoother())
@@ -137,7 +137,7 @@ function make_ana_mom_fun(::Type{MDEstimator}, g::Function, ∇g::Tuple{Function
 end
 
 
-type DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
+mutable struct DEFAULT_SOLVER{T <: GenericMomentBasedEstimator}
     s::MathProgBase.AbstractMathProgSolver
 end
 

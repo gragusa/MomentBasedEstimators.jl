@@ -34,7 +34,7 @@ function GMMEstimator(f::Function, theta::Vector;
     g₀ = g(theta)
     n, m, p = (size(g₀)..., length(theta))
     ## Initial Weighting Matrix
-    W₀ = initialW == nothing ? eye(Float64, m) : initialW
+    W₀ = initialW == nothing ? Matrix(I, m, m) : initialW
     W  = setW0(mgr, m);
     W[1] = W₀
     ## Weighting
@@ -57,7 +57,7 @@ function GMMEstimator(f::Function, theta::Vector;
                                       w, ni, ni, n, p, m))
 end
 
-typealias GradTuple Union{Void, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
+const GradTuple = Union{Nothing, Tuple{Function, Function, Function}, Tuple{Function, Function, Function, Function}}
 
 
 function MDEstimator(f::Function, theta::Vector;
@@ -96,7 +96,7 @@ function MDEstimator(f::Function, theta::Vector;
                 _g(theta) = _f(theta, data)
                 ff[i] = _g(theta)
             end
-            grad = (ff...)
+            grad = (ff...,)
         end
         mf  = make_ana_mom_fun(MDEstimator, g, grad)
     end
@@ -114,7 +114,7 @@ end
 # 	   end
 # end
 
-function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{MDEstimator{M, V, S, T}})
+function initialize!(g::MomentBasedEstimator{MDEstimator{M, V, S, T}}) where {M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weighting}
 	   n, p, m = size(g)
 	   ξ₀ = [ones(n); startingval(g)]
 	   g.e.gele = Int((n+p)*(m+1)-p)
@@ -128,7 +128,7 @@ function initialize!{M<:MomentFunction, V<:Divergence, S<:Unconstrained, T<:Weig
 	   g.status[1] = :Initialized
 end
 
-function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
+function initialize!(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}}) where {M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T<:Weighting}
     n, p, m = size(g)
 	   ξ₀ = startingval(g)
 	   g.e.gele = @compat Int(p)
@@ -142,7 +142,7 @@ function initialize!{M<:MomentFunction, V<:IterationManager, S<:Unconstrained, T
 	   g.status[1] = :Initialized
 end
 
-function initialize!{M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}})
+function initialize!(g::MomentBasedEstimator{GMMEstimator{M, V, S, T}}) where {M<:MomentFunction, V<:IterationManager, S<:Constrained, T<:Weighting}
     n, p, m = size(g)
 	   ξ₀ = MomentBasedEstimators.startingval(g)
 	   g.e.gele = @compat Int(g.e.c.nc*p)
@@ -165,8 +165,8 @@ getparUB(g::MomentBasedEstimator) = g.e.ub
 getmfLB(g::MomentBasedEstimator) = g.e.glb
 getmfUB(g::MomentBasedEstimator) = g.e.gub
 
-getwtsLB{M, V, T, S}(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) = g.e.wlb
-getwtsUB{M, V, T, S}(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) = g.e.wub
+getwtsLB(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) where {M, V, T, S} = g.e.wlb
+getwtsUB(g::MomentBasedEstimator{MDEstimator{M, V, T, S}}) where {M, V, T, S} = g.e.wub
 
 ################################################################################
 ## Set constraint on parameters
@@ -183,7 +183,7 @@ end
 ## This return a constrained version of MomentBasedEstimator
 function constrained(h::Function, hlb::Vector, hub::Vector, g::MomentBasedEstimator)
     p = npar(g); chk = check_constraint_sanity(p, startingval(g), h, hlb, hub)
-    r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array(Float64, p), Array(Float64, p, p))
+    r  = MomentBasedEstimatorResults(:Uninitialized, 0., Array{Float64}(undef, p), Array{Float64}(undef, p, p))
     if typeof(g.e.mf) == MomentBasedEstimators.FADMomFun
         mf  = make_fad_mom_fun(g.e.mf.g, IdentitySmoother())
     else
@@ -236,17 +236,17 @@ end
 ################################################################################
 ## Update initial lb and up on parameters(default -inf, +inf)
 ################################################################################
-function setparLB!{T}(g::MomentBasedEstimator{T}, lb::Vector)
+function setparLB!(g::MomentBasedEstimator{T}, lb::Vector) where T
     npar(g) == length(lb) || error("Dimension error")
-    copy!(g.e.lb, lb)
+    copyto!(g.e.lb, lb)
 end
 
-function setparUB!{T}(g::MomentBasedEstimator{T}, ub::Vector)
+function setparUB!(g::MomentBasedEstimator{T}, ub::Vector) where T
     npar(g) == length(ub) || error("Dimension error")
-    copy!(g.e.ub, ub)
+    copyto!(g.e.ub, ub)
 end
 
-function setparbounds!{T}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
+function setparbounds!(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector) where T
 	   setparLB!(g, lb)
 	   setparUB!(g, ub)
 end
@@ -254,17 +254,17 @@ end
 ################################################################################
 ## Update initial lb and up on mdweights (default 0, n)
 ################################################################################
-function setwtsLB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector)
+function setwtsLB!(g::MomentBasedEstimator{T}, lb::Vector) where T <: MDEstimator
     nobs(g) == length(lb) || error("Dimension error")
-    copy!(g.e.wlb, lb)
+    copyto!(g.e.wlb, lb)
 end
 
-function setwtsUB!{T <: MDEstimator}(g::MomentBasedEstimator{T}, ub::Vector)
+function setwtsUB!(g::MomentBasedEstimator{T}, ub::Vector) where T <: MDEstimator
     nobs(g) == length(ub) || error("Dimension error")
-    copy!(g.e.wub, ub)
+    copyto!(g.e.wub, ub)
 end
 
-function setwtsbounds!{T <: MDEstimator}(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector)
+function setwtsbounds!(g::MomentBasedEstimator{T}, lb::Vector, ub::Vector) where T <: MDEstimator
     setwtsLB!(g, lb)
     setwtsUB!(g, ub)
 end
@@ -273,7 +273,7 @@ end
 ## Update initial weighting matrix (default is I(m))
 ################################################################################
 ## TODO: This should depend on the Iteration Manager
-setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2}) = copy!(g.e.W , W)
+setW0!(g::MomentBasedEstimator{GMMEstimator}, W::Array{Float64, 2}) = copyto!(g.e.W , W)
 
 ################################################################################
 ## Iteration
@@ -286,17 +286,17 @@ end
 ################################################################################
 ## estimate!
 ################################################################################
-function setx0!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, x0::Vector{Float64})
+function setx0!(g::MomentBasedEstimator{S}, x0::Vector{Float64}) where S<:GMMEstimator
     ## For GMM x0 is the parameter
     length(x0) == npar(g) || throw(DimensionMismatch(""))
-    copy!(g.e.x0, x0)
+    copyto!(g.e.x0, x0)
     MathProgBase.setwarmstart!(g.m, x0)
 end
 
-function setx0!{S <: MDEstimator}(m::MomentBasedEstimator{S}, x0::Vector{Float64})
+function setx0!(m::MomentBasedEstimator{S}, x0::Vector{Float64}) where S<:MDEstimator
     ## For GMM x0 is the parameter
     length(x0) == npar(m) || throw(DimensionMismatch(""))
-    copy!(m.e.x0, x0)
+    copyto!(m.e.x0, x0)
     x00 = [m.m.inner.x[1:nobs(m)], x0]
     MathProgBase.setwarmstart!(m.m, x00)
 end
@@ -312,11 +312,11 @@ function estimate!(g::MomentBasedEstimator)
     g
 end
 
-function fill_in_results!{T <: MDEstimator}(me::MomentBasedEstimator{T})
+function fill_in_results!(me::MomentBasedEstimator{T}) where T<:MDEstimator
     me.r.status = MathProgBase.status(me.m)
     n, p, m = size(me)
     ss = MathProgBase.getsolution(me.m)
-    copy!(me.r.coef, ss[n+1:end])
+    copyto!(me.r.coef, ss[n+1:end])
     ## The ϕ_value is
     ## equal to 2*objval/(S_T(k1^2/k2))
     v  = MathProgBase.getobjval(me.m)
@@ -327,28 +327,29 @@ function fill_in_results!{T <: MDEstimator}(me::MomentBasedEstimator{T})
     me.status[1] = :Solved
 end
 
-function fill_in_results!{S <: GMMEstimator}(g::MomentBasedEstimator{S})
+function fill_in_results!(g::MomentBasedEstimator{S}) where S<:GMMEstimator
     g.r.status = MathProgBase.status(g.m)
     n, p, m = size(g)
-    copy!(g.r.coef, MathProgBase.getsolution(g.m))
+    copyto!(g.r.coef, MathProgBase.getsolution(g.m))
     g.r.objval = MathProgBase.getobjval(g.m)
     g.status[1] = :Solved
 end
 
-function solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel)
-    # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
-    # KNITRO.solveProblem(g.m.inner)
-    MathProgBase.optimize!(g.m)
-end
+# function solve!(g::MomentBasedEstimator{S}, s::KNITRO.KnitroMathProgModel) where S<:MDEstimator
+#     # KNITRO.restartProblem(g.m.inner, startingval(g), g.m.inner.numConstr)
+#     # KNITRO.solveProblem(g.m.inner)
+#     MathProgBase.optimize!(g.m)
+# end
 
-solve!{S <: MDEstimator}(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) = MathProgBase.optimize!(g.m)
+solve!(g::MomentBasedEstimator{S}, s::Ipopt.IpoptMathProgModel) where S<:MDEstimator = MathProgBase.optimize!(g.m)
 
-function solve!{S <: GMMEstimator}(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractMathProgModel)
+function solve!(g::MomentBasedEstimator{S}, s::MathProgBase.SolverInterface.AbstractMathProgModel) where S<:GMMEstimator
     reset_iteration_state!(g)
     n, p, m = size(g)
+    theta = zeros(p)
     while !(finished(g.e.mgr, g.e.ist))
         if g.e.ist.n[1]>1
-            g.e.W[g.e.ist.n[1]][:,:] = optimal_W(g.e.mf, theta, g.e.mgr.k, g.e.mgr.demean)
+            g.e.W[g.e.ist.n[1]][:,:] .= optimal_W(g.e.mf, theta, g.e.mgr.k, g.e.mgr.demean)
         end
         MathProgBase.optimize!(g.m)
 
@@ -367,8 +368,8 @@ end
 next!(x::IterationState) = x.n[1] += 1
 
 function update!(x::IterationState, v::Vector)
-    x.change[:] = maxabs(x.prev - v)
-    x.prev[:] = v
+    x.change[:] .= maximum(abs, x.prev - v)
+    x.prev[:] .= v
 end
 
 reset_iteration_state!(g::MomentBasedEstimator) =

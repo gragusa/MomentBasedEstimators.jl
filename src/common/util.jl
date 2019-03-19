@@ -42,7 +42,7 @@ The `i`th row of the output matrix will be equal to
 """
 :row_kron
 
-function row_kron{S,T}(A::AbstractMatrix{S}, B::AbstractMatrix{T})
+function row_kron(A::AbstractMatrix{S}, B::AbstractMatrix{T}) where {S,T}
     nobsa, na = size(A)
     nobsb, nb = size(B)
     out = Array(promote_type(S, T), nobsa, na*nb)
@@ -51,7 +51,7 @@ function row_kron{S,T}(A::AbstractMatrix{S}, B::AbstractMatrix{T})
 end
 
 # specialized version for sparse matrices
-function row_kron{S,T}(A::SparseMatrixCSC{S}, B::SparseMatrixCSC{T})
+function row_kron(A::SparseMatrixCSC{S}, B::SparseMatrixCSC{T}) where {S,T}
     nobsa, na = size(A)
     nobsb, nb = size(B)
     out = spzeros(promote_type(S, T), nobsa, na*nb)
@@ -61,7 +61,7 @@ end
 
 function gettril(x::Array{Float64, 2})
   n, m = size(x)
-  a = Array(eltype(x), convert(Int, n.*(n+1)/2))
+  a = Array{eltype(x)}(undef, convert(Int, n.*(n+1)/2))
   k::Int = 1
   @inbounds for i = 1:n
     for j = 1:i
