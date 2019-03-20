@@ -1,9 +1,8 @@
 #################################################################
 ### This test was lifted from the vingette for the R gmm package.
 #################################################################
-using Distributions
-using Linearalgebra
-srand(42)
+Random.seed!(42)
+
 x = rand(Normal(4, 2), 1000)
 
 function h_norm(θ)

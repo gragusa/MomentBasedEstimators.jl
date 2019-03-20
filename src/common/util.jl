@@ -45,7 +45,7 @@ The `i`th row of the output matrix will be equal to
 function row_kron(A::AbstractMatrix{S}, B::AbstractMatrix{T}) where {S,T}
     nobsa, na = size(A)
     nobsb, nb = size(B)
-    out = Array(promote_type(S, T), nobsa, na*nb)
+    out = Array{promote_type(S, T)}(undef, nobsa, na*nb)
     row_kron!(A, B, out)
     out
 end

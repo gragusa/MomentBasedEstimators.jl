@@ -1,13 +1,12 @@
 ## Instrumental variables problems
 
-dt = readcsv("iv_large.csv");
+dt = CSV.read("iv_large.csv", header=false);
 
-y = dt[:, 1];
-x = dt[:, 2];
-x = reshape(x, size(x,1), 1)
-z = dt[:, 3:end];
+y = convert(Array{Float64}, dt[1]);
+x = convert(Array{Float64}, dt[2:2]);
+z = convert(Array{Float64}, dt[3:end]);
 
-h(theta) = z.*(y-x*theta);
+h(theta) = z.*(y-x.*theta);
 
 gmm_base = GMMEstimator(h, [.0])
 estimate!(gmm_base)
@@ -52,15 +51,15 @@ kl_ana_full = MDEstimator(h, [.0], grad = (Dsn, Dws, Dsl, Hwsl));
 estimate!(kl_ana_full);
 
 
-HAS_KNITRO = true
-try
-    cue_knitro = deepcopy(cue_base)
-    solver!(cue_knitro, KnitroSolver(hessopt = 6, print_level = 2))
-    estimate!(cue_knitro)
-catch
-    HAS_KNITRO = false
-end
+# HAS_KNITRO = true
+# try
+#     cue_knitro = deepcopy(cue_base)
+#     solver!(cue_knitro, KnitroSolver(hessopt = 6, print_level = 2))
+#     estimate!(cue_knitro)
+# catch
+#     HAS_KNITRO = false
+# end
 
-if HAS_KNITRO
-    @fact coef(cue_knitro) --> roughly(coef(cue_base))
-end
+# if HAS_KNITRO
+#     @fact coef(cue_knitro) --> roughly(coef(cue_base))
+# end

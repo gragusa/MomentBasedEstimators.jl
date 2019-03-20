@@ -1,9 +1,6 @@
 ######################################################
 ### This test implements example 13.5 in Greene (2012)
 ######################################################
-using MomentBasedEstimators
-using LinearAlgebra
-using SpecialFunctions
 
 # this is the data from Example C.1 in Greene 2012
 income_data = [20.5, 31.5, 47.7, 26.2, 44, 8.28, 30.8, 17.2, 19.9, 9.96,

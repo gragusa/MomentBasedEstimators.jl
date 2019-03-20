@@ -14,8 +14,8 @@ MathProgBase.features_available(e::GMMEstimator) = [:Grad, :Jac, :Hess]
 
 function MathProgBase.eval_f(e::GMMEstimator, theta)
     idx = e.ist.n[1]
-    gn = vec(sum(e.mf.s(theta), dims=1))
-    Base.dot(gn, e.W[idx]*gn)
+    gn = vec(sum(e.mf.s(theta), dims=1))::Vector{Float64}
+    LinearAlgebra.dot(gn, e.W[idx]*gn)
 end
 
 MathProgBase.eval_g(e::GMMEstimator{M, V, T, S}, g, theta) where {M, V, T<:Unconstrained, S} = nothing
@@ -25,10 +25,10 @@ function MathProgBase.eval_g(e::GMMEstimator{M, V, T, S}, g, theta) where {M, V,
 end
 
 function MathProgBase.eval_grad_f(e::GMMEstimator{M, V, T, S}, grad_f, θ) where {M<:FADMomFun, V, T, S}
-    idx = e.ist.n[1]
+    idx = e.ist.n[1]::Int64
     sn(θ) = vec(sum(e.mf.s(θ), dims=1))
     Δsn = ForwardDiff.jacobian(sn, θ)::Matrix{Float64}  # m x k
-    Wg  = e.W[idx]*sn(θ)
+    Wg  = (e.W[idx]*sn(θ))::Vector{Float64}
     mul!(grad_f, Δsn', Wg)
 end
 

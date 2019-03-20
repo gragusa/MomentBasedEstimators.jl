@@ -89,7 +89,7 @@ function MDEstimator(f::Function, theta::Vector;
     if grad == nothing
         mf  = make_fad_mom_fun(g, kernel)
     else
-        ff = Array(Function, length(grad))
+        ff = Array{Function}(undef, length(grad))
         if data != nothing
             for (i, f) in enumerate(grad)
                 _f = copy(f)

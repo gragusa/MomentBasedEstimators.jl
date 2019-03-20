@@ -17,7 +17,6 @@ momentfunction(e::MomentBasedEstimator{T}, ::Type{Val{:smoothed}}) where T = e.e
 
 momentfunction(e::MomentBasedEstimator{T}, ::Type{Val{:unsmoothed}}) where T = e.e.mf.g(coef(e))
 
-
 momentfunction(e::MomentBasedEstimator{T}, theta) where T = e.e.mf.s(theta)
 momentfunction(e::GenericMomentBasedEstimator, theta) where T = e.mf.s(theta)
 
@@ -102,8 +101,7 @@ function mfvcov(e::MomentBasedEstimator{T}, t::Type{Val{:weighted}}, w) where T<
     k1 = κ₁(e)
     k2 = κ₂(e)
     Omega = vcov(mf, HC0())
-    rmul!(Omega, k1^2*S/k2)
-    return Omega
+    return rmul!(Omega, k1^2*S/k2)
 end
 
 function mfvcov(e::MomentBasedEstimator{T}, t::Type{Val{:unweighted}}, w) where T<:MDEstimator
@@ -112,8 +110,7 @@ function mfvcov(e::MomentBasedEstimator{T}, t::Type{Val{:unweighted}}, w) where 
     k1 = κ₁(e)
     k2 = κ₂(e)
     Omega = vcov(mf, HC0())
-    Omega = scale!(k1^2*S/k2, Omega)
-    return Omega
+    return rmul!(Omega, k1^2*S/k2)
 end
 
 mfvcov(e::MomentBasedEstimator{T}) where T = vcov(momentfunction(e), smoothing_kernel(e))
@@ -262,7 +259,7 @@ function StatsBase.coeftable(e::MomentBasedEstimator)
     cc = coef(e)
     se = stderror(e)
     zz = z_stats(e)
-    CoefTable(hcat(cc, se, zz, 2.0*ccdf(Normal(), abs.(zz))),
+    CoefTable(hcat(cc, se, zz, 2.0*ccdf.(Normal(), abs.(zz))),
               ["Estimate", "Std.Error", "z value", "Pr(>|z|)"],
               ["x$i" for i = 1:npar(e)],
               4)

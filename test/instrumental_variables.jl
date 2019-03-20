@@ -1,10 +1,10 @@
 ## Instrumental variables problems
 
-dt = readcsv("iv.csv");
+dt = CSV.read("iv.csv"; header = false);
 
-y = dt[:,1];
-x = dt[:,2:4];
-z = dt[:,5:end];
+y = convert(Array{Float64}, dt[1]);
+x = convert(Array{Float64}, dt[2:4]);
+z = convert(Array{Float64}, dt[5:end]);
 
 f(theta) = z.*(y-x*theta);
 
